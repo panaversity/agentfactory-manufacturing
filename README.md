@@ -2,13 +2,13 @@
 
 Per-course starting environments for the Manufacturing track of [The AI Agent Factory](https://learn.panaversity.org).
 
-Each folder here is a **bare base** for one crash course: rules files, MCP wiring, and an env template, but no application code. On this track you direct and your coding agent builds on top of the base. Each course's Quick Win walks you through it; you do not set anything up by hand.
+Each folder here is the **base** for one crash course: rules files, MCP wiring, and an env template. On this track you direct, and your coding agent builds the project on top of the base from prompts you paste. Each course's Quick Win walks you through it, and your agent does the setup itself.
 
-| Course | Folder | Download |
-| ------ | ------ | -------- |
+| Course      | Folder                        | Download                                                                      |
+| ----------- | ----------------------------- | ----------------------------------------------------------------------------- |
 | Digital FTE | [`digital-fte/`](digital-fte) | [`digital-fte-base.zip`](../../releases/latest/download/digital-fte-base.zip) |
 
-The bases share one spine: Neon and Context7 over MCP, database work through Neon MCP only (dev-plane), audit in the same transaction, and skills the agent installs (`skill-creator`, `mcp-builder`, plus whatever a course needs). They differ only in that skill set, which is why each course gets its own folder instead of one shared zip.
+The bases share one spine: Neon and Context7 over MCP, database work through Neon MCP only (dev-plane), audit in the same transaction, and skills the agent installs (`skill-creator`, `mcp-builder`, plus whatever a course needs). They differ in that skill set, which is why each course gets its own folder.
 
 ## How a base is used
 
