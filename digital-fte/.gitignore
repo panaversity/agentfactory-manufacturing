@@ -1,0 +1,21 @@
+# Secrets: never commit a filled-in .env
+.env
+.env.local
+.env.*.local
+
+# Python (your agent builds Python projects on top of this base)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json

@@ -1,0 +1,33 @@
+name: Build base zips
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build a zip per course folder
+        run: |
+          mkdir -p dist
+          for d in */ ; do
+            name="${d%/}"
+            [ -f "$name/AGENTS.md" ] || continue
+            zip -rX "dist/${name}-base.zip" "$name" -x '*.DS_Store'
+          done
+          ls -lh dist/
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          body: |
+            Per-course bare bases for the Manufacturing track. Download the zip for your course and open it in your coding agent.
