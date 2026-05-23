@@ -17,10 +17,10 @@ This folder is a bare base, not a project: no `src/`, no pinned dependencies. Yo
 A basic chat agent becomes an **AI Worker** through two moves, plus the wire between them:
 
 1. **Capabilities become Skills.** Portable `SKILL.md` folders the agent discovers and loads on demand, instead of tools hard-coded in Python.
-2. **State, system of record, and memory move into Postgres.** The durable store the Worker reads from and writes to, reached over MCP.
-3. **MCP is the wire.** The agent reaches Postgres only through a scoped MCP server, never raw SQL in agent logic.
+2. **State, system of record, and memory move into Postgres.** The durable store the Worker reads from and writes to.
+3. **At runtime the Worker reaches Postgres through its own scoped access, never the admin Neon MCP.** A plain `@function_tool` in the Quick Win; the scoped `customer-data` MCP server (plus direct `asyncpg` for the audit layer alone) in Part 4. The admin Neon MCP is build-time only.
 
-End state: the `chat-agent` from the Build AI Agents course, evolved into a **customer-support Worker** that loads three Skills, runs against a Neon Postgres system of record (six core tables plus a customer-support domain), does semantic search with pgvector, talks to Postgres at runtime through a scoped custom MCP server, and writes an audit row for every meaningful action.
+End state: the `chat-agent` from the Build AI Agents course, evolved into a **customer-support Worker** that loads three Skills, runs against a Neon Postgres system of record (five core tables plus the SDK Session's turns and a customer-support domain), does semantic search with pgvector, talks to its business data at runtime through a scoped custom MCP server, and writes an audit row for every meaningful action.
 
 ## Prep the base (the human pastes one prompt; you run the steps)
 
@@ -43,7 +43,7 @@ End state: the `chat-agent` from the Build AI Agents course, evolved into a **cu
 
 The course opens with a 15-minute Quick Win, and the human may be on that rather than the full Part 4 build. The Quick Win is the deliberately smallest honest slice, and its defaults are looser than the architecture below. Do not over-build it:
 
-- **Two tables only:** `notes` and `audit_log`. No six-table schema, no embeddings, no domain tables.
+- **Two tables only:** `notes` and `audit_log`. No full five-table schema, no embeddings, no domain tables.
 - **The Worker is a `SandboxAgent`** (the same runtime as the rest of the course), with one `@function_tool` passed via `tools=[...]`, run from the terminal on `UnixLocalSandboxClient`. Keep `Capabilities.default()` and a gpt-5-class model (the default filesystem capability rejects smaller models with a 400). Same primitive throughout: do not start on a plain `Agent` and switch later.
 - **Runtime DB access is that one `@function_tool` reading `DATABASE_URL`**, not a custom MCP server. Fetch the connection string once with `get_connection_string` and write it to `.env`; the Worker reads it there. That string is the only thing the runtime needs from the build plane.
 - **Still hold the two invariants:** provisioning goes through Neon MCP, and the note write and its audit row commit in one transaction.
