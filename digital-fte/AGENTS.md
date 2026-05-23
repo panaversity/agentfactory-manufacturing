@@ -1,12 +1,22 @@
-# Digital FTE base: coding agent brief
+# Digital FTE base: the brief your general agent builds from
 
 You build; the human directs and verifies. Write the code, run it, show the command and its output, and prove each step before the next. Past tense means it ran and you saw the result.
 
+You are a **general agent** (Claude Code, OpenCode, or similar): you do the database work, the MCP wiring, the skill scaffolding, and the verification, not just code generation. Drive the whole build from this brief plus the prompts the human pastes.
+
 **Course:** the human pastes build prompts from the course page, and you execute and verify each one: https://agentfactory.panaversity.org/docs/digital-fte-crash-course
 
-This folder is a bare base, not a project: no `src/`, no pinned dependencies. You construct what the course asks for on top of it. The base wires two MCP servers (Neon for the system of record, Context7 for live docs) and names three skills to install.
+This folder is a bare base, not a project: no `src/`, no pinned dependencies. You construct everything below on top of it. Confirm any OpenAI Agents SDK, MCP, or pgvector API through Context7 before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
 
-Confirm any OpenAI Agents SDK, MCP, or pgvector API through Context7 before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
+## What you are building
+
+A basic chat agent becomes an **AI Worker** through two moves, plus the wire between them:
+
+1. **Capabilities become Skills.** Portable `SKILL.md` folders the agent discovers and loads on demand, instead of tools hard-coded in Python.
+2. **State, system of record, and memory move into Postgres.** The durable store the Worker reads from and writes to, reached over MCP.
+3. **MCP is the wire.** The agent reaches Postgres only through a scoped MCP server, never raw SQL in agent logic.
+
+End state: the `chat-agent` from the Build AI Agents course, evolved into a **customer-support Worker** that loads three Skills, runs against a Neon Postgres system of record (six core tables plus a customer-support domain), does semantic search with pgvector, talks to Postgres at runtime through a scoped custom MCP server, and writes an audit row for every meaningful action.
 
 ## Prep the base (the human pastes one prompt; you run the steps)
 
@@ -21,20 +31,73 @@ Confirm any OpenAI Agents SDK, MCP, or pgvector API through Context7 before you 
 
 - **Set up the key.** Copy `.env.example` to `.env`; the human pastes their `OPENAI_API_KEY`. Never write the key yourself, never echo it.
 
-- **Bring the MCP servers online.** Neon and Context7 are already declared for both tools: `.mcp.json` (Claude Code) and `opencode.json` (OpenCode). Ask the human to authorize Neon in the browser (OAuth, one click). If the human has no Neon account, point them to neon.com to create a free one; the authorize screen also offers signup.
+- **Bring the MCP servers online.** Neon and Context7 are already declared for both tools: `.mcp.json` (Claude Code) and `opencode.json` (OpenCode). Ask the human to authorize Neon in the browser (OAuth, one click). No Neon account: point them to neon.com for a free one; the authorize screen also offers signup.
 
-- **Then have the human restart you.** Newly installed skills and freshly wired MCP servers do not load mid-session. Ask the human to exit and relaunch the agent (`claude` or `opencode`) in this folder, then confirm the boundary: list the Neon tools you can see. No tools means Neon is not authorized yet, or the restart has not happened.
+- **Then have the human restart you.** Newly installed skills and freshly wired MCP servers do not load mid-session. Ask the human to exit and relaunch (`claude` or `opencode`) in this folder, then confirm the boundary: list the Neon tools you can see. No tools means Neon is not authorized yet, or the restart has not happened.
+
+## The architecture you construct
+
+### System of record (Neon Postgres + pgvector)
+
+Six core tables, each mapping to one of the four jobs a Worker does (read truth, write outcomes, leave traces, find similar prior work):
+
+- `conversations`, `messages`: the dialogue (the unit of work and its turns).
+- `documents`, `embeddings`: the reference library and the vectors that make it searchable.
+- `audit_log`, `capability_invocations`: the trace (every action, and every skill or tool call).
+
+Plus customer-support domain tables: `customers`, `orders`, `tickets`, `refunds`.
+
+Embedding contract (must hold end to end): model `text-embedding-3-small`, dimension `VECTOR(1536)`, cosine distance (`<=>`), HNSW index (`vector_cosine_ops`). The column dimension and the embedding model must match on insert and query, or results are nonsense.
+
+### Capabilities (three Skills in `.claude/skills/`)
+
+- `summarize-ticket`: one ticket into a five-section handoff summary.
+- `find-similar-cases`: semantic search over resolved tickets; always run before drafting a reply.
+- `escalate-with-context`: package a conversation for tier-2 handoff under explicit trigger conditions.
+
+Scaffold each with `skill-creator`; the human owns the frontmatter `description` (the routing surface the model reads to fire the skill). Bodies are imperative, with one or two real examples and named edge cases.
+
+### The wire (MCP)
+
+- **Neon MCP server: development plane only.** Provisioning, migrations, inspection in plain English. Never wired into a runtime path or a shipped agent.
+- **`customer-data` MCP server: runtime plane.** A scoped custom server you build with `mcp-builder`, exposing exactly three tools and no `run_sql`:
+  - `lookup_customer(customer_id)`: profile lookup.
+  - `find_similar_resolved_tickets(description, limit)`: pgvector search.
+  - `issue_refund(order_id, amount_cents, reason)`: writes the refund, updates the order, writes an audit row, all in one transaction. Approval-gated (`require_approval`).
+
+### Audit (the ledger that makes the Worker provable and sellable)
+
+Every meaningful action writes an `audit_log` row, and a `capability_invocations` row if it is a skill or tool call. Canonical action vocabulary: `message_received`, `message_sent`, `skill_activated`, `capability_invoked`, `refund_issued`, `refund_blocked`. The audit write commits in the same transaction as the action. The audit subsystem uses its own `asyncpg` pool, never the MCP boundary it audits.
+
+## Build sequence (eight decisions)
+
+1. Update the rules file with the new architecture.
+2. Plan the schema and the Skill set (Plan Mode; no code yet).
+3. Provision Neon and run the schema migration (Neon MCP, on a branch, then merge to main).
+4. Write the first Skill, `summarize-ticket`.
+5. Build the embedding pipeline and seed the resolved-tickets library (direct asyncpg; seed scripts are infrastructure, not a runtime path).
+6. Write the `customer-data` MCP server for runtime access.
+7. Wire audit logging everywhere.
+8. Verify end to end with the test scenario, then run the replay query.
 
 ## Rules that prevent silent failures
 
-- **All database work goes through Neon MCP.** Provision, migrate, inspect, and query through the Neon tools. Never hand the human SQL to run or a connection string to paste.
-- **Neon MCP is dev-plane only.** Never wire `mcp.neon.tech` into a runtime path or a shipped agent. Runtime database access is a scoped custom MCP server you build per course.
+- **All business reads and writes go through the `customer-data` MCP server.** Agent logic never queries or mutates business data directly.
+- **Neon MCP is dev-plane only.** Never wire `mcp.neon.tech` into a runtime path. Never expose a broad `run_sql` at runtime.
 - **Migrate on a branch.** `prepare_database_migration` opens a temporary branch; `complete_database_migration` merges it. Never run untested DDL against main.
-- **Audit in the same transaction.** A state-changing action and its audit row commit together or not at all. The audit insert sits inside the action's `transaction()` block.
-- **Build MCP servers with `mcp-builder`, and scope tools narrowly.** One tool, one job. Never a broad `run_sql` the model can aim anywhere.
+- **Audit in the same transaction.** A state-changing action and its audit row commit together or not at all, inside the action's `transaction()` block. Audit runs on its own `asyncpg` pool, never through the MCP layer it audits.
+- **Register pgvector on any connection that reads or writes the `embedding` column** (`register_vector`), or writes corrupt silently. Embed with the same model on insert and query.
+- **Scope custom MCP tools narrowly.** One tool, one job. Never a general `run_sql`.
 - **Give stdio MCP servers the parent environment.** Spawn them with `env={**os.environ}`, or the child process loses `PATH` and cannot find its interpreter.
 - **Set `client_session_timeout_seconds=30` on any stdio server that reaches a remote database.** The short default can expire mid-write and trigger a retry that double-writes.
-- **Scaffold skills with `skill-creator`, never from a blank file.** The human owns the frontmatter `description`: it is the routing surface the model reads to fire the skill.
+- **Scaffold skills with `skill-creator`, never from a blank file.** Skills live in `.claude/skills/` only (OpenCode reads it as a fallback); never duplicate into `.opencode/skills/`.
+
+## Verification (what "done" means at each layer)
+
+- **Schema:** `vector` extension enabled, ten tables in `public`, `idx_embeddings_hnsw` present.
+- **Embeddings:** the document and embedding counts equal the seed corpus, one embedding model only.
+- **MCP:** the agent lists exactly `lookup_customer`, `find_similar_resolved_tickets`, `issue_refund`. No `run_sql` in the runtime tool list.
+- **Audit:** a single conversation produces `message_received`, at least one `capability_invoked`, and `message_sent`; the full trace is replayable in SQL without re-running the model.
 
 ## Keys
 
