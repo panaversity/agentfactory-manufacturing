@@ -1,6 +1,8 @@
 # Digital FTE base: coding agent brief
 
-You build; the human directs and verifies. Write the code, run it, show the command and its output, and prove each step before the next. Past tense means it actually ran and you saw the result.
+You build; the human directs and verifies. Write the code, run it, show the command and its output, and prove each step before the next. Past tense means it ran and you saw the result.
+
+**Course:** the human pastes build prompts from the course page, and you execute and verify each one: https://agentfactory.panaversity.org/docs/digital-fte-crash-course
 
 This folder is a bare base, not a project: no `src/`, no pinned dependencies. You construct what the course asks for on top of it. The base wires two MCP servers (Neon for the system of record, Context7 for live docs) and names three skills to install.
 
@@ -30,8 +32,8 @@ Confirm any OpenAI Agents SDK, MCP, or pgvector API through Context7 before you 
 - **Migrate on a branch.** `prepare_database_migration` opens a temporary branch; `complete_database_migration` merges it. Never run untested DDL against main.
 - **Audit in the same transaction.** A state-changing action and its audit row commit together or not at all. The audit insert sits inside the action's `transaction()` block.
 - **Build MCP servers with `mcp-builder`, and scope tools narrowly.** One tool, one job. Never a broad `run_sql` the model can aim anywhere.
-- **An stdio MCP server inherits the environment.** Pass `env={**os.environ}`, or the child process loses `PATH` and cannot find its interpreter.
-- **An stdio server hitting a remote database needs a longer session timeout (~30s).** The default is too short for the first call (TLS, pool, write); it commits server-side, the client retries, and you get duplicate rows.
+- **Give stdio MCP servers the parent environment.** Spawn them with `env={**os.environ}`, or the child process loses `PATH` and cannot find its interpreter.
+- **Set `client_session_timeout_seconds=30` on any stdio server that reaches a remote database.** The short default can expire mid-write and trigger a retry that double-writes.
 - **Scaffold skills with `skill-creator`, never from a blank file.** The human owns the frontmatter `description`: it is the routing surface the model reads to fire the skill.
 
 ## Keys
@@ -49,4 +51,4 @@ The Worker runs on a `SandboxAgent`. When you wire its capabilities, clients, or
 
 ## Sourcing
 
-Claims that live only in this file get "per AGENTS.md..." when you cite them, so the human can check what you cite as cited. When Context7 disagrees with this file, Context7 wins. This brief is today's known-good, not eternal.
+When you state something that comes only from this file, cite it as "per AGENTS.md" so the human knows the source. When Context7 disagrees with this file, Context7 wins. This brief is today's known-good, not a permanent spec.
