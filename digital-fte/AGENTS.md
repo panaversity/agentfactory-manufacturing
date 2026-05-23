@@ -52,9 +52,9 @@ A custom MCP server for a single Worker writing to a single store is over-engine
 
 ### System of record (Neon Postgres + pgvector)
 
-Six core tables, each mapping to one of the four jobs a Worker does (read truth, write outcomes, leave traces, find similar prior work):
+The core tables, each mapping to one of the four jobs a Worker does (read truth, write outcomes, leave traces, find similar prior work):
 
-- `conversations`, `messages`: the dialogue (the unit of work and its turns).
+- `conversations` (business metadata and the closing summary, keyed by `session_id`) plus the conversation turns the SDK Session persists (`SQLAlchemySession` on this same Neon database): the dialogue and its live state. The Session owns the turn history; you do not hand-roll a `messages` table.
 - `documents`, `embeddings`: the reference library and the vectors that make it searchable.
 - `audit_log`, `capability_invocations`: the trace (every action, and every skill or tool call).
 
@@ -86,7 +86,7 @@ Every meaningful action writes an `audit_log` row, and a `capability_invocations
 
 1. Update the rules file with the new architecture.
 2. Plan the schema and the Skill set (Plan Mode; no code yet).
-3. Provision Neon and run the schema migration (Neon MCP, on a branch, then merge to main).
+3. Provision Neon and run the schema migration (Neon MCP, on a branch, then merge to main), and back the conversational Session with `SQLAlchemySession` on this database so turn history persists there.
 4. Write the first Skill, `summarize-ticket`.
 5. Build the embedding pipeline and seed the resolved-tickets library (direct asyncpg; seed scripts are infrastructure, not a runtime path).
 6. Write the `customer-data` MCP server for runtime access.
@@ -99,6 +99,7 @@ Every meaningful action writes an `audit_log` row, and a `capability_invocations
 - **Neon MCP is dev-plane only.** Never wire `mcp.neon.tech` into a runtime path. Never expose a broad `run_sql` at runtime.
 - **Migrate on a branch.** `prepare_database_migration` opens a temporary branch; `complete_database_migration` merges it. Never run untested DDL against main.
 - **Audit in the same transaction.** A state-changing action and its audit row commit together or not at all, inside the action's `transaction()` block. Audit runs on its own `asyncpg` pool, never through the MCP layer it audits.
+- **State persists through the SDK Session, on Postgres.** Back the conversational `Session` with `SQLAlchemySession.from_url(session_id, url=<the asyncpg URL of this Neon DB>, create_tables=True)`; it auto-stores every turn. The Session owns conversation turn history, so never hand-write turns into a second table (no double-store). Keep `conversations` for business metadata and the closing summary. The conversational `session=` on `Runner.run` is NOT the `SandboxRunConfig` sandbox session; never conflate the two.
 - **Register pgvector on any connection that reads or writes the `embedding` column** (`register_vector`), or writes corrupt silently. Embed with the same model on insert and query.
 - **Scope custom MCP tools narrowly.** One tool, one job. Never a general `run_sql`.
 - **Give stdio MCP servers the parent environment.** Spawn them with `env={**os.environ}`, or the child process loses `PATH` and cannot find its interpreter.
@@ -107,7 +108,7 @@ Every meaningful action writes an `audit_log` row, and a `capability_invocations
 
 ## Verification (what "done" means at each layer)
 
-- **Schema:** `vector` extension enabled, ten tables in `public`, `idx_embeddings_hnsw` present.
+- **Schema:** `vector` extension enabled, the core and domain tables present (plus the SDK Session's own turn tables), `idx_embeddings_hnsw` present.
 - **Embeddings:** the document and embedding counts equal the seed corpus, one embedding model only.
 - **MCP:** the agent lists exactly `lookup_customer`, `find_similar_resolved_tickets`, `issue_refund`. No `run_sql` in the runtime tool list.
 - **Audit:** a single conversation produces `message_received`, at least one `capability_invoked`, and `message_sent`; the full trace is replayable in SQL without re-running the model.
