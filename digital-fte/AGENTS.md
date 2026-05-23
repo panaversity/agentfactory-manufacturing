@@ -42,7 +42,7 @@ End state: the `chat-agent` from the Build AI Agents course, evolved into a **cu
 The course opens with a 15-minute Quick Win, and the human may be on that rather than the full Part 4 build. The Quick Win is the deliberately smallest honest slice, and its defaults are looser than the architecture below. Do not over-build it:
 
 - **Two tables only:** `notes` and `audit_log`. No six-table schema, no embeddings, no domain tables.
-- **The Worker is a plain `Agent` + `Runner`**, not a `SandboxAgent`: one `@function_tool`, run from the terminal.
+- **The Worker is a `SandboxAgent`** (the same runtime as the rest of the course), with one `@function_tool` passed via `tools=[...]`, run from the terminal on `UnixLocalSandboxClient`. Keep `Capabilities.default()` and a gpt-5-class model (the default filesystem capability rejects smaller models with a 400). Same primitive throughout: do not start on a plain `Agent` and switch later.
 - **Runtime DB access is that one `@function_tool` reading `DATABASE_URL`**, not a custom MCP server. Fetch the connection string once with `get_connection_string` and write it to `.env`; the Worker reads it there. That string is the only thing the runtime needs from the build plane.
 - **Still hold the two invariants:** provisioning goes through Neon MCP, and the note write and its audit row commit in one transaction.
 
@@ -118,7 +118,7 @@ Every meaningful action writes an `audit_log` row, and a `capability_invocations
 
 ## Sandbox docs (the SDK reference for this layer)
 
-The full Part 4 Worker runs on a `SandboxAgent` (the Quick Win Worker is a plain `Agent` + `Runner`, no sandbox). When you wire its capabilities, clients, or memory, these four pages are the source of truth; confirm exact signatures through Context7, which tracks this beta API as it moves:
+The Worker runs on a `SandboxAgent`, in the Quick Win and the full build alike (a `@function_tool` is passed via `tools=[...]`; the sandbox capabilities are separate). When you wire its capabilities, clients, or memory, these four pages are the source of truth; confirm exact signatures through Context7, which tracks this beta API as it moves:
 
 - [Sandbox agents](https://openai.github.io/openai-agents-python/sandbox_agents/): what a `SandboxAgent` is, and the capability family (Filesystem, Shell, Skills, Memory, Compaction).
 - [Sandbox guide](https://openai.github.io/openai-agents-python/sandbox/guide/): setup, the manifest, and the run lifecycle (SDK-owned vs. developer-owned).
