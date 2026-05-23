@@ -6,6 +6,8 @@ You are a **general agent** (Claude Code, OpenCode, or similar): you do the data
 
 **Course:** the human pastes build prompts from the course page, and you execute and verify each one: https://agentfactory.panaversity.org/docs/digital-fte-crash-course
 
+The human is a learner, not a client: plan before you build, explain in plain language, move one concept at a time, and prefer the simplest honest thing that works, naming what a heavier choice buys when you reach for it. The course prompts are short on purpose; this brief is the context that lets them stay short.
+
 This folder is a bare base, not a project: no `src/`, no pinned dependencies. You construct everything below on top of it. Confirm any OpenAI Agents SDK, MCP, or pgvector API through Context7 before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
 
 ## What you are building
@@ -34,6 +36,17 @@ End state: the `chat-agent` from the Build AI Agents course, evolved into a **cu
 - **Bring the MCP servers online.** Neon and Context7 are already declared for both tools: `.mcp.json` (Claude Code) and `opencode.json` (OpenCode). Ask the human to authorize Neon in the browser (OAuth, one click). No Neon account: point them to neon.com for a free one; the authorize screen also offers signup.
 
 - **Then have the human restart you.** Newly installed skills and freshly wired MCP servers do not load mid-session. Ask the human to exit and relaunch (`claude` or `opencode`) in this folder, then confirm the boundary: list the Neon tools you can see. No tools means Neon is not authorized yet, or the restart has not happened.
+
+## The Quick Win comes before the full build
+
+The course opens with a 15-minute Quick Win, and the human may be on that rather than the full Part 4 build. The Quick Win is the deliberately smallest honest slice, and its defaults are looser than the architecture below. Do not over-build it:
+
+- **Two tables only:** `notes` and `audit_log`. No six-table schema, no embeddings, no domain tables.
+- **The Worker is a `SandboxAgent`** (the same runtime as the rest of the course), with one `@function_tool` passed via `tools=[...]`, run from the terminal on `UnixLocalSandboxClient`. Keep `Capabilities.default()` and a gpt-5-class model (the default filesystem capability rejects smaller models with a 400). Same primitive throughout: do not start on a plain `Agent` and switch later.
+- **Runtime DB access is that one `@function_tool` reading `DATABASE_URL`**, not a custom MCP server. Fetch the connection string once with `get_connection_string` and write it to `.env`; the Worker reads it there. That string is the only thing the runtime needs from the build plane.
+- **Still hold the two invariants:** provisioning goes through Neon MCP, and the note write and its audit row commit in one transaction.
+
+A custom MCP server for a single Worker writing to a single store is over-engineering; it earns its place only when a second consumer needs the same capability (Concept 14). Everything in "The architecture you construct" below is the full Part 4 build: apply that rigor (the `customer-data` MCP server, the six tables, `SandboxAgent`) when the human is building the Worker, not during the Quick Win. If you are unsure which phase the human is in, ask.
 
 ## The architecture you construct
 
@@ -105,7 +118,7 @@ Every meaningful action writes an `audit_log` row, and a `capability_invocations
 
 ## Sandbox docs (the SDK reference for this layer)
 
-The Worker runs on a `SandboxAgent`. When you wire its capabilities, clients, or memory, these four pages are the source of truth; confirm exact signatures through Context7, which tracks this beta API as it moves:
+The Worker runs on a `SandboxAgent`, in the Quick Win and the full build alike (a `@function_tool` is passed via `tools=[...]`; the sandbox capabilities are separate). When you wire its capabilities, clients, or memory, these four pages are the source of truth; confirm exact signatures through Context7, which tracks this beta API as it moves:
 
 - [Sandbox agents](https://openai.github.io/openai-agents-python/sandbox_agents/): what a `SandboxAgent` is, and the capability family (Filesystem, Shell, Skills, Memory, Compaction).
 - [Sandbox guide](https://openai.github.io/openai-agents-python/sandbox/guide/): setup, the manifest, and the run lifecycle (SDK-owned vs. developer-owned).
