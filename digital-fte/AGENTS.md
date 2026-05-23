@@ -38,6 +38,15 @@ Confirm any OpenAI Agents SDK, MCP, or pgvector API through Context7 before you 
 
 `OPENAI_API_KEY` from `.env`, never in code or logs. Neon authorizes over OAuth, so no Neon key lives here; Context7 runs keyless. Before any paid-model call, confirm `OPENAI_API_KEY` is set; if it is not, stop and ask the human.
 
+## Sandbox docs (the SDK reference for this layer)
+
+The Worker runs on a `SandboxAgent`. When you wire its capabilities, clients, or memory, these four pages are the source of truth; confirm exact signatures through Context7, which tracks this beta API as it moves:
+
+- [Sandbox agents](https://openai.github.io/openai-agents-python/sandbox_agents/): what a `SandboxAgent` is, and the capability family (Filesystem, Shell, Skills, Memory, Compaction).
+- [Sandbox guide](https://openai.github.io/openai-agents-python/sandbox/guide/): setup, the manifest, and the run lifecycle (SDK-owned vs. developer-owned).
+- [Sandbox clients](https://openai.github.io/openai-agents-python/sandbox/clients/): local (`UnixLocalSandboxClient`, Docker) vs. hosted (E2B, Modal, Vercel, Cloudflare). Swap the client, keep the agent.
+- [Sandbox memory](https://openai.github.io/openai-agents-python/sandbox/memory/): the `Memory()` capability lets a Worker learn across runs. It is file-based and in beta, and is not the Neon system of record.
+
 ## Sourcing
 
 Claims that live only in this file get "per AGENTS.md..." when you cite them, so the human can check what you cite as cited. When Context7 disagrees with this file, Context7 wins. This brief is today's known-good, not eternal.
