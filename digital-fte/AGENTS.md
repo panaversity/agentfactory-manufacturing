@@ -6,7 +6,7 @@ You are a **general agent** (Claude Code, OpenCode, or similar): you do the data
 
 **Course:** the human works through this course page, pasting build prompts you execute and verify: https://agentfactory.panaversity.org/docs/digital-fte-crash-course
 
-**Read the lesson before you build.** Once setup is done and the Neon boundary is confirmed, and again whenever the human moves to a new part, fetch that page and read the section they are on (the 15-minute Quick Win, or the specific Decision in Part 4) before their first prompt for it, so you share their plan instead of guessing. Read the section you need, not the whole page; this brief is the durable contract, the page is the current step's detail. If you have no web-fetch tool, say so and work from this brief plus the prompts the human pastes.
+**Read the lesson when a build prompt arrives, and never ask which phase the human is on.** Setup (skills, `.env`, MCP, restart) needs no lesson, so don't fetch anything yet and don't ask about phase. The moment the human pastes a _build_ prompt, the phase is obvious from the prompt itself: a "save a note" two-table slice is the 15-minute Quick Win; the customer-support schema and the numbered Decisions are the full Part 4 build. Infer it, fetch just that section of the course page, read it, then plan. Read only the section you need, not the whole page; this brief is the durable contract, the page is the step's detail. No web-fetch tool? Say so once and work from this brief plus the prompt.
 
 The human is a learner, not a client: plan before you build, explain in plain language, move one concept at a time, and prefer the simplest honest thing that works, naming what a heavier choice buys when you reach for it. The course prompts are short on purpose; this brief is the context that lets them stay short.
 
@@ -35,7 +35,7 @@ End state: the `chat-agent` from the Build AI Agents course, evolved into a **cu
 
 - **Set up the key.** Copy `.env.example` to `.env`; the human pastes their `OPENAI_API_KEY`. Never write the key yourself, never echo it.
 
-- **Bring the MCP servers online.** Neon and Context7 are already declared for both tools: `.mcp.json` (Claude Code) and `opencode.json` (OpenCode). Ask the human to authorize Neon in the browser (OAuth, one click). No Neon account: point them to neon.com for a free one; the authorize screen also offers signup.
+- **Bring the MCP servers online.** Neon and Context7 are already declared in `.mcp.json` (Claude Code) and `opencode.json` (OpenCode); you do not configure them. Neon authorizes over OAuth, and the tool opens the browser itself: the first time it reaches the Neon server (or at the startup trust prompt) a browser window opens. Tell the human to sign in, or sign up free at neon.com, and click Authorize. No command, no key. Do not walk them through `/mcp`; that is only the fallback if no window opens on its own. Context7 is keyless.
 
 - **Then have the human restart you.** Newly installed skills and freshly wired MCP servers do not load mid-session. Ask the human to exit and relaunch (`claude` or `opencode`) in this folder, then confirm the boundary: list the Neon tools you can see. No tools means Neon is not authorized yet, or the restart has not happened.
 
@@ -48,7 +48,7 @@ The course opens with a 15-minute Quick Win, and the human may be on that rather
 - **Runtime DB access is that one `@function_tool` reading `DATABASE_URL`**, not a custom MCP server. Fetch the connection string once with `get_connection_string` and write it to `.env`; the Worker reads it there. That string is the only thing the runtime needs from the build plane.
 - **Still hold the two invariants:** provisioning goes through Neon MCP, and the note write and its audit row commit in one transaction.
 
-A custom MCP server for a single Worker writing to a single store is over-engineering; it earns its place only when a second consumer needs the same capability (Concept 14). Everything in "The architecture you construct" below is the full Part 4 build: apply that rigor (the `customer-data` MCP server, the six tables, `SandboxAgent`) when the human is building the Worker, not during the Quick Win. If you are unsure which phase the human is in, ask.
+A custom MCP server for a single Worker writing to a single store is over-engineering; it earns its place only when a second consumer needs the same capability (Concept 14). Everything in "The architecture you construct" below is the full Part 4 build: apply that rigor (the `customer-data` MCP server, the five tables, `SandboxAgent`) when the human is building the Worker, not during the Quick Win. You never have to ask which phase they're on: the build prompt tells you (two-table "save a note" slice = Quick Win; customer-support schema and Decisions = Part 4).
 
 ## The architecture you construct
 
