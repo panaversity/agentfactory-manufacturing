@@ -6,17 +6,22 @@ This folder is a bare base, not a project: no `src/`, no pinned dependencies. Yo
 
 Confirm any OpenAI Agents SDK, MCP, or pgvector API through Context7 before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
 
-## Prep the base (the human pastes one prompt per step)
+## Prep the base (the human pastes one prompt; you run the steps)
 
-- **Install the skills.** Detect which agent you are, then run, substituting `claude-code` or `opencode`:
+- **Install the skills.** Run, in this folder:
 
   ```
-  npx skills add https://github.com/anthropics/skills --skill skill-creator mcp-builder --agent <claude-code|opencode> -y
-  npx skills add https://github.com/neondatabase/agent-skills --skill neon-postgres --agent <claude-code|opencode> -y
+  npx skills add https://github.com/anthropics/skills --skill skill-creator mcp-builder --agent claude-code -y
+  npx skills add https://github.com/neondatabase/agent-skills --skill neon-postgres --agent claude-code -y
   ```
 
-- **Confirm the MCP servers.** `.mcp.json` already declares Neon and Context7. Ask the human to authorize Neon in the browser (OAuth, one click), then prove the boundary: list the Neon tools you can see. No tools means the human has not authorized Neon yet.
+  This installs into `.claude/skills/`, which OpenCode reads too, so one install serves both tools.
+
 - **Set up the key.** Copy `.env.example` to `.env`; the human pastes their `OPENAI_API_KEY`. Never write the key yourself, never echo it.
+
+- **Bring the MCP servers online.** Neon and Context7 are already declared for both tools: `.mcp.json` (Claude Code) and `opencode.json` (OpenCode). Ask the human to authorize Neon in the browser (OAuth, one click). If the human has no Neon account, point them to neon.com to create a free one; the authorize screen also offers signup.
+
+- **Then have the human restart you.** Newly installed skills and freshly wired MCP servers do not load mid-session. Ask the human to exit and relaunch the agent (`claude` or `opencode`) in this folder, then confirm the boundary: list the Neon tools you can see. No tools means Neon is not authorized yet, or the restart has not happened.
 
 ## Rules that prevent silent failures
 

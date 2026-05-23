@@ -7,7 +7,7 @@ Open this folder in your coding agent (Claude Code or OpenCode) and follow the c
 What is here:
 
 - `AGENTS.md` carries the standing rules; `CLAUDE.md` loads them when your agent opens the folder.
-- `.mcp.json` wires two MCP servers: Neon (the system of record, over OAuth) and Context7 (live docs).
+- `.mcp.json` (Claude Code) and `opencode.json` (OpenCode) wire two MCP servers: Neon (the system of record, over OAuth) and Context7 (live docs).
 - `.env.example` holds the one key you provide (`OPENAI_API_KEY`).
 - `.gitignore` keeps secrets and build artifacts out of git.
 
