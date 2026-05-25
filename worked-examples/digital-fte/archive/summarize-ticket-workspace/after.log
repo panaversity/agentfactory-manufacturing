@@ -1,0 +1,11 @@
+  [PASS] 2/3 want=True: write a handoff note for #4471
+  [PASS] 3/3 want=True: can you TL;DR this thread for me? i'm picking it up from Dana 
+  [PASS] 2/3 want=True: ticket #5512 — where does this stand before I escalate it to t
+  [PASS] 3/3 want=True: i'm taking over the Lopez ticket from the previous agent, catc
+  [PASS] 3/3 want=True: brief the next agent on #4471 — they're picking it up after my
+  [FAIL] 2/3 want=False: draft a reply to the customer on #4471 apologizing for the del
+  [PASS] 0/3 want=False: go through the open tickets in my queue and tell me which 3 i 
+  [PASS] 0/3 want=False: how many tickets did we close this week vs last week, broken d
+  [PASS] 0/3 want=False: write up a summary of this week's ticket trends for the team s
+  [PASS] 0/3 want=False: reply to maria on #4471 and give her the current status and wh
+Results: 9/10 passed

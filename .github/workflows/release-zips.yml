@@ -20,6 +20,8 @@ jobs:
           mkdir -p dist
           for d in */ ; do
             name="${d%/}"
+            # worked-examples/ holds full reference solutions, not bare bases; never zip it
+            case "$name" in worked-examples) continue ;; esac
             [ -f "$name/AGENTS.md" ] || continue
             zip -rX "dist/${name}-base.zip" "$name" -x '*.DS_Store'
           done

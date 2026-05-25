@@ -1,0 +1,7 @@
+[
+  {"query": "Here's ticket #4471. Customer Maria Lopez (Pro plan, since 2022). Order #A-8830 arrived with a cracked screen. She replied twice, last one impatient. We offered replacement or refund; she chose refund. Refund not yet processed — waiting on the warehouse to confirm the return arrived. Write a handoff note for the next agent.", "should_trigger": true},
+  {"query": "I'm taking over this ticket from Dana. Thread: customer says login 2FA codes never arrive by SMS. We confirmed the number, resent twice, tried email fallback (worked once). Customer still frustrated, asking for a callback. Catch me up on where this stands.", "should_trigger": true},
+  {"query": "Use the ticket handoff skill on this: order delayed 9 days, customer wants a refund, we offered 20% off to keep the sale, no reply yet. Brief the next agent.", "should_trigger": true},
+  {"query": "Draft a reply to Maria on #4471: apologize for the cracked screen, confirm her refund is processing, give a 3-5 day timeline. Here's the thread: she's annoyed, replied twice, we already agreed to the refund.", "should_trigger": false},
+  {"query": "Here are 8 open tickets with their ages and categories. Tell me which 3 to work first and why. [list of 8 tickets follows]", "should_trigger": false}
+]

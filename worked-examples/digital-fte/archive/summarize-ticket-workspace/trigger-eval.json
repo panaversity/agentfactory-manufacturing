@@ -1,0 +1,12 @@
+[
+  {"query": "write a handoff note for #4471", "should_trigger": true},
+  {"query": "can you TL;DR this thread for me? i'm picking it up from Dana who's out sick today", "should_trigger": true},
+  {"query": "ticket #5512 — where does this stand before I escalate it to tier 2?", "should_trigger": true},
+  {"query": "i'm taking over the Lopez ticket from the previous agent, catch me up on where it's at", "should_trigger": true},
+  {"query": "brief the next agent on #4471 — they're picking it up after my shift ends", "should_trigger": true},
+  {"query": "draft a reply to the customer on #4471 apologizing for the delay and confirming the refund is on its way", "should_trigger": false},
+  {"query": "go through the open tickets in my queue and tell me which 3 i should prioritize today", "should_trigger": false},
+  {"query": "how many tickets did we close this week vs last week, broken down by category?", "should_trigger": false},
+  {"query": "write up a summary of this week's ticket trends for the team standup", "should_trigger": false},
+  {"query": "reply to maria on #4471 and give her the current status and what the next step is", "should_trigger": false}
+]

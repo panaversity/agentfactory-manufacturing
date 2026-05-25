@@ -1,0 +1,7 @@
+Evaluating: Turn ONE support ticket or conversation thread into a five-section handoff brief — Customer Context, Issue, Resolution Steps Taken, Current Status, Recommended Next Action. Use this whenever someone is picking up, handing off, or sizing up a single ticket and needs the state condensed: "write a handoff note for #4471", "TL;DR this thread", "catch me up on this case", "where does this stand before I escalate", "brief the next agent on this one". Fire it even when the word "summarize" never appears — the trigger is the handoff/catch-up intent on one ticket, not the keyword. Do NOT use it to draft a reply to the customer, to triage or rank a batch of tickets, or to report on ticket volume or team metrics — those are different jobs.
+Results: 2/5 passed
+  [FAIL] rate=0/3 expected=True: Use the ticket handoff skill on this: order delayed 9 days, customer w
+  [FAIL] rate=0/3 expected=True: Here's ticket #4471. Customer Maria Lopez (Pro plan, since 2022). Orde
+  [FAIL] rate=0/3 expected=True: I'm taking over this ticket from Dana. Thread: customer says login 2FA
+  [PASS] rate=0/3 expected=False: Draft a reply to Maria on #4471: apologize for the cracked screen, con
+  [PASS] rate=0/3 expected=False: Here are 8 open tickets with their ages and categories. Tell me which 

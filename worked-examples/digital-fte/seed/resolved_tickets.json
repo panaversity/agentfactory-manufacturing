@@ -1,0 +1,100 @@
+{
+  "tickets": [
+    {
+      "customer_email": "marie.choi87@gmail.com",
+      "category": "refund",
+      "summary": "Refund requested for blender that arrived with a cracked jar",
+      "resolution": "We issued a full refund of $89.99 to the original Visa and created a prepaid return label. Refund confirmation was emailed and will post within 3\u20135 business days."
+    },
+    {
+      "customer_email": "derek_santos@outlook.com",
+      "category": "refund",
+      "summary": "Charged full price after applying a 20% promo code at checkout",
+      "resolution": "We verified the promo code was valid and applied a price adjustment. A $14.00 partial refund was processed back to the Mastercard ending in 2214."
+    },
+    {
+      "customer_email": "lila.jenkins@me.com",
+      "category": "refund",
+      "summary": "Requested refund for jeans that didn\u2019t fit after using free-returns policy",
+      "resolution": "Return was received and inspected in our warehouse. We refunded $54.50 to the original payment and emailed a confirmation receipt."
+    },
+    {
+      "customer_email": "samir.qureshi@proton.me",
+      "category": "refund",
+      "summary": "E-book download failed repeatedly and customer wants money back",
+      "resolution": "We confirmed the file error on our CDN and revoked the license. A full refund of $12.99 was issued to the Amex on file and access was removed."
+    },
+    {
+      "customer_email": "olivia.martin@icloud.com",
+      "category": "login",
+      "summary": "Locked out after too many password attempts",
+      "resolution": "We verified identity via last order and billing ZIP, then cleared the lock on the account. A password reset link was sent and the customer confirmed a successful login."
+    },
+    {
+      "customer_email": "tyler.nguyen@uni.edu",
+      "category": "login",
+      "summary": "2FA phone lost; cannot receive verification codes",
+      "resolution": "We disabled SMS 2FA after ID verification and added an authenticator app as the new factor. Customer logged in and re-enabled SMS to a new number."
+    },
+    {
+      "customer_email": "ben.harada@company.co",
+      "category": "login",
+      "summary": "SSO with Google fails due to email alias mismatch",
+      "resolution": "We linked the alias to the primary account and cleared the stale OAuth tokens. Customer signed in via Google successfully on web and mobile."
+    },
+    {
+      "customer_email": "grace.patel84@yahoo.com",
+      "category": "login",
+      "summary": "Password reset emails not arriving",
+      "resolution": "We corrected a typo in the account email and removed a domain-level suppression. A fresh reset email was sent and the customer changed the password."
+    },
+    {
+      "customer_email": "noah.ross@fastmail.com",
+      "category": "duplicate_charge",
+      "summary": "Card charged twice after checkout error and page refresh",
+      "resolution": "We found two captures for the same cart within one minute. The duplicate $42.37 charge was voided the same day and a receipt update was sent."
+    },
+    {
+      "customer_email": "carmen.alvarez@live.com",
+      "category": "duplicate_charge",
+      "summary": "Apple Pay double-tap caused two payments",
+      "resolution": "Both transactions were authorized; one order shipped. We refunded the duplicate $68.20 authorization, which will fall off within 1\u20133 business days."
+    },
+    {
+      "customer_email": "michael.kim@aol.com",
+      "category": "duplicate_charge",
+      "summary": "Saw pre-authorization and final charge both posted",
+      "resolution": "We confirmed the temporary hold was not released by the issuer. We contacted the processor to release the hold and sent documentation; the bank removed it within 24 hours."
+    },
+    {
+      "customer_email": "hannah.rivera@inbox.lv",
+      "category": "duplicate_charge",
+      "summary": "Monthly subscription renewed twice on same day",
+      "resolution": "Two renewal jobs overlapped due to a timezone mismatch; one invoice was canceled. A $9.99 refund was issued and the next renewal date was corrected."
+    },
+    {
+      "customer_email": "robert.fields@att.net",
+      "category": "shipping",
+      "summary": "Package shows delivered but not received",
+      "resolution": "We contacted the carrier and confirmed delivery to the wrong unit. A replacement was shipped with signature required and the original was retrieved by the driver."
+    },
+    {
+      "customer_email": "ashley.danvers@hey.com",
+      "category": "shipping",
+      "summary": "Shipment stuck in transit for a week",
+      "resolution": "We opened a trace with USPS and upgraded to priority reshipment. Replacement order went out same day and the original was marked lost after 7 days."
+    },
+    {
+      "customer_email": "leo.bernard@zoho.com",
+      "category": "shipping",
+      "summary": "Wrong size sneakers delivered; needs exchange",
+      "resolution": "We created an exchange order for the correct size and emailed a prepaid return label. Replacement shipped once the return scanned at the carrier drop-off."
+    },
+    {
+      "customer_email": "fatima.khalid@hotmail.com",
+      "category": "shipping",
+      "summary": "Item arrived damaged with crushed box",
+      "resolution": "We requested photos for QC and filed a damage claim with UPS. A new unit was sent overnight and the damaged item did not need to be returned."
+    }
+  ]
+}

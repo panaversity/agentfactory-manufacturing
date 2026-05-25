@@ -1,0 +1,12 @@
+[project]
+name = "chat-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "greenlet>=3.5.1",
+    "openai-agents[sqlalchemy]>=0.17.3",
+    "pgvector>=0.4.2",
+]

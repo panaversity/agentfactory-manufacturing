@@ -14,6 +14,14 @@ The bases share one spine: Neon and Context7 over MCP, database work through Neo
 
 Open a course folder in your coding agent (Claude Code or OpenCode). `CLAUDE.md` loads `AGENTS.md`, which carries the standing rules and tells the agent how to install the course's skills and confirm the MCP servers. Then follow the course.
 
+## Reference solutions
+
+The `worked-examples/` folder holds the **finished build** for a course, for after you have done it yourself. These are full reference solutions (the complete code, verified end to end), not bare bases, so they are deliberately kept out of the release zips. Treat them as the answer key: read them when you are stuck or want to compare, not as your starting point.
+
+| Course      | Reference solution                                            |
+| ----------- | ------------------------------------------------------------- |
+| Digital FTE | [`worked-examples/digital-fte/`](worked-examples/digital-fte) |
+
 ## Adding a course
 
 Add a folder with the base files (copy an existing one, adjust `AGENTS.md`'s skill list and `.mcp.json` if the course needs another server). On the next `v*` tag, CI builds `<folder>-base.zip` and attaches it to the Release.
