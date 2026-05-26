@@ -4,9 +4,10 @@ Per-course starting environments for the Manufacturing track of [The AI Agent Fa
 
 Each folder here is the **base** for one crash course: rules files, MCP wiring, and an env template. On this track you direct, and your coding agent builds the project on top of the base from prompts you paste. Each course's Quick Win walks you through it, and your agent does the setup itself.
 
-| Course      | Folder                        | Download                                                                      |
-| ----------- | ----------------------------- | ----------------------------------------------------------------------------- |
-| Digital FTE | [`digital-fte/`](digital-fte) | [`digital-fte-base.zip`](../../releases/latest/download/digital-fte-base.zip) |
+| Course            | Folder                                    | Download                                                                                  |
+| ----------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Digital FTE       | [`digital-fte/`](digital-fte)             | [`digital-fte-base.zip`](../../releases/latest/download/digital-fte-base.zip)             |
+| Production Worker | [`production-worker/`](production-worker) | [`production-worker-base.zip`](../../releases/latest/download/production-worker-base.zip) |
 
 The bases share one spine: Neon and Context7 over MCP, database work through Neon MCP only (dev-plane), audit in the same transaction, and skills the agent installs (`skill-creator`, `mcp-builder`, plus whatever a course needs). They differ in that skill set, which is why each course gets its own folder.
 
