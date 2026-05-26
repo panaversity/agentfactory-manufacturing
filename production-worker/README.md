@@ -4,7 +4,7 @@ The starting point for the Production Worker crash course on the Manufacturing t
 
 Open this folder in your coding agent (Claude Code or OpenCode) and follow the course. The agent does the setup itself: it installs the skills, confirms the MCP servers, sets up your `.env`, and builds from there.
 
-This course **extends the customer-support Worker you built in the [Digital FTE course](https://learn.panaversity.org/docs/digital-fte-crash-course)**. Bring that Worker in when the course tells you to (the agent copies it here, or clones the reference solution as your floor if you did not build it). The Worker's internals do not change; you add Inngest around them.
+This course wraps a customer-support agent in an Inngest operational envelope. Your coding agent builds a minimal floor fresh from one prompt (a few sample customers, one approval-gated refund, an audit trail), or you point it at the Worker you built in the [Digital FTE course](https://learn.panaversity.org/docs/digital-fte-crash-course) if you have one. Either way the agent's logic does not change; you add Inngest around it.
 
 What is here:
 
