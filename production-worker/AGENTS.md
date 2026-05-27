@@ -17,7 +17,7 @@ This folder is a bare base, not a project: no `src/`, no pinned dependencies. Yo
 The envelope needs the smallest Worker it can wrap, not a finished product. The human picks one of two floors:
 
 - **Their own Worker.** If they have the Course #4 Digital FTE (or any agent of their own), open it. The one thing you must locate is the agent invocation, an `await Runner.run(...)` call: that is what becomes durable. Do not rebuild it; wrap what is there.
-- **A minimal fresh floor** (the common case; do not make them rebuild Course #4 first). Build it from one prompt: a minimal `SandboxAgent` (OpenAI Agents SDK) on a local sandbox that drafts a reply to a customer email and can `issue_refund`, with the refund approval-gated (`@function_tool(needs_approval=True)`), writing an audit row for every action. A handful of sample customers in a JSON file is plenty, and its audit trail goes in local SQLite; a minimal floor needs no Neon, no pgvector, no custom MCP server. Keep it small: it exists to be wrapped, not shipped.
+- **A minimal fresh floor** (the common case; do not make them rebuild Course #4 first). Build it from one prompt: a minimal `SandboxAgent` (OpenAI Agents SDK) on a local sandbox that drafts a reply to a customer email and can `issue_refund`, with the refund approval-gated (`@function_tool(needs_approval=True)`), writing an audit row for every action. It is Neon-backed, like the Digital FTE base: it reads its handful of sample customers from a Neon Postgres table and writes its audit trail to a Neon `audit_log` table, both provisioned over the Neon MCP. No pgvector and no custom MCP server, though, the floor reads and writes Neon directly through typed functions. Keep it small: it exists to be wrapped, not shipped.
 
 Before wrapping, confirm the floor has the two things the envelope hooks into: an `await Runner.run(agent, ...)` to make durable, and an approval-gated tool to gate. Pointing the finished envelope at the human's own Course #4 Worker is the closing challenge, not the starting requirement.
 
@@ -36,24 +36,24 @@ End state: the same agent, now event-driven, durable, rate-controlled, and gatin
 
 - **Check Node.js.** `node --version` must be 20+ (the Inngest dev server is a Node CLI). If it is missing, tell the human; do not try to install it silently.
 
-- **Install the skills.** The standalone floor needs only the four Inngest skills. Run, in this folder:
+- **Install the skills.** The standalone floor needs the four Inngest skills and the Neon helper. Run, in this folder:
 
   ```
   npx skills add https://github.com/inngest/inngest-skills --skill inngest-setup inngest-events inngest-steps inngest-durable-functions --agent claude-code -y
+  npx skills add https://github.com/neondatabase/agent-skills --skill neon-postgres --agent claude-code -y
   ```
 
-  If you bring your Course #4 Worker (Neon-backed), also install the skills that path uses (the skill-building helpers and the Neon helper):
+  `neon-postgres` is what lets you provision the floor's `customers` and `audit_log` tables over the Neon MCP. If you bring your own Course #4 Worker that builds a custom `customer-data` MCP, also install the skill-building helpers (the minimal floor reads Neon directly and needs neither):
 
   ```
   npx skills add https://github.com/anthropics/skills --skill skill-creator mcp-builder --agent claude-code -y
-  npx skills add https://github.com/neondatabase/agent-skills --skill neon-postgres --agent claude-code -y
   ```
 
   This is the flag form on purpose. The bare `npx skills add inngest/inngest-skills` shorthand symlinks skills under `.agents/skills/`; the `--agent claude-code` form copies them into `.claude/skills/` (which OpenCode reads too, so one install serves both tools). The four named Inngest skills are the in-scope ones the skills.sh registry actually carries. It does not carry `inngest-flow-control` or `inngest-realtime` (the repo has both, but only the Claude Code plugin path installs them), and naming a skill it lacks is dropped silently with a zero exit, so do not add them to this command. Pull the Part 3 flow-control surface (`Concurrency`, `Throttle`, `Batch`, pinned below) from the dev-server MCP's `grep_docs` / `read_doc` and Context7, the same way you confirm any Python signature. These skills are TypeScript-first in their examples; the concepts transfer, and the Python surface is pinned by this brief and the floor's own code.
 
 - **Set up the keys.** Copy `.env.example` to `.env`; the human pastes their `OPENAI_API_KEY`. `INNGEST_DEV=1` is already there so the SDK runs in local dev mode without a signing key. Never write the key yourself, never echo it.
 
-- **Bring the MCP servers online.** Context7 and `inngest-dev` are declared in `.mcp.json` and `opencode.json`; you do not configure them. Context7 is keyless. `inngest-dev` points at the local dev server and only resolves while it runs (next step), so seeing no Inngest tools until then is expected. If you bring a Neon-backed Course #4 Worker, add a `Neon` server to both config files; it authorizes over OAuth (a browser window opens; the human signs in free at neon.com and clicks Authorize). A minimal fresh floor stores its handful of customers in JSON and its audit trail in local SQLite, so it needs no Neon at all.
+- **Bring the MCP servers online.** Neon, Context7, and `inngest-dev` are declared in `.mcp.json` and `opencode.json`; you do not configure them. Context7 is keyless. Neon authorizes over OAuth: a browser window opens, the human signs in free at neon.com and clicks Authorize, once. This is how the floor provisions and inspects its Postgres, so do it whether the floor is fresh or the human's own Worker. `inngest-dev` points at the local dev server and only resolves while it runs (next step), so seeing no Inngest tools until then is expected.
 
 - **Run the two processes.** The Production Worker is two processes side by side: the Python function host (`uv run uvicorn ... --port 8000 --reload`, serving `inngest.fast_api.serve`) and the Inngest dev server (`npx inngest-cli@latest dev`, on `:8288`). The `--reload` matters: the break-and-replay beats edit a step's code and expect the host to pick it up, which only happens with auto-reload. The dev server auto-discovers the function host. One function host per dev server; a second one de-syncs state and stalls runs silently.
 
@@ -96,12 +96,12 @@ The envelope's own rules (these always bind):
 - **Idempotency at the external boundary complements step memoization.** Memoization protects within a run; the refund's `(order_id, request_id)` key protects across replays and retries at the real-world effect.
 - **The HITL dance has one verified shape; deviating fails silently.** Live-tested on `openai-agents` 0.17.3 + `inngest` 0.5.18: run the agent inside `step.run` and inspect `result.interruptions`; on an interruption, persist `result.to_state().to_string()` as that step's output, then suspend with `ctx.step.wait_for_event(step_id, event=..., timeout=timedelta(hours=4))` (the `timeout` is required and takes a `datetime.timedelta`; there is no `inngest.Duration`). On the decision event, `await RunState.from_string(agent, state_str)` (it is async, await it), call `state.approve(item)` for each `state.get_interruptions()`, then resume `Runner.run(agent, state)` inside a `while result.interruptions:` loop (one resume can leave approvals pending), rebuilding the agent to the same tool shape that produced the state. The agent run lives inside the step, or Inngest re-invokes the model on every re-entry (double cost, double tool-fire); the refund executed exactly once in testing precisely because it sat behind the memoized step.
 - **The `inngest-dev` MCP only resolves while `npx inngest-cli dev` runs.** No Inngest tools before you start it is expected. If `:8288` is taken, the dev server uses `8289+`; update the URL in `.mcp.json`, and also set `INNGEST_BASE_URL=http://127.0.0.1:<port>` on the host process so the function host follows the dev server to the new port (re-pointing the MCP alone leaves the host talking to `:8288`, and they de-sync).
-- **Every meaningful action writes an audit row,** on every floor. If the audit lives in a database (local SQLite on a minimal floor, Neon on a bring-your-own Worker), the action and its audit row commit in the same transaction. Pick a small, stable action vocabulary and do not drift it.
-
-If you bring your own Neon-backed Course #4 Worker, these also bind (a minimal SQLite floor does not need them):
-
-- **Keep business access scoped.** Reads and writes go through a narrow interface (the Course #4 Worker's `customer-data` MCP, or plain typed functions on a minimal floor), never a broad `run_sql` at runtime.
+- **Every meaningful action writes an audit row,** on every floor, and the action and its audit row commit in the same Neon transaction. Pick a small, stable action vocabulary and do not drift it.
+- **Keep business access scoped.** Reads and writes go through a narrow interface, plain typed functions on a minimal floor or the Course #4 Worker's `customer-data` MCP, never a broad `run_sql` at runtime.
 - **Neon MCP is dev-plane only:** provisioning, migrations, and inspection in English, never wired into a runtime path; migrate on a branch (`prepare_database_migration`, then `complete_database_migration`), never untested DDL against main.
+
+If you bring your own Course #4 Worker (custom `customer-data` MCP, pgvector memory), these also bind; a minimal fresh floor does not need them:
+
 - **Match the SDK's extras and setup:** `SQLAlchemySession` needs `uv add "openai-agents[sqlalchemy]"`; pgvector needs `register_vector` on any connection that touches an embedding column; give stdio MCP servers the parent environment (`env={**os.environ}`) and `client_session_timeout_seconds=30`. The Inngest SDK itself is `uv add inngest`.
 - **Scaffold any Skill with `skill-creator`, never a blank file; Skills live in `.claude/skills/` only.**
 
