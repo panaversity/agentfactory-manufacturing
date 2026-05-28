@@ -1,6 +1,6 @@
 # Digital FTE base (Manufacturing track)
 
-The starting point for the Digital FTE crash course on the Manufacturing track of [The AI Agent Factory](https://learn.panaversity.org). You direct; your coding agent builds the whole project on top of this base from prompts you paste.
+The starting point for the Digital FTE crash course on the Manufacturing track of [The AI Agent Factory](https://agentfactory.panaversity.org). You direct; your coding agent builds the whole project on top of this base from prompts you paste.
 
 Open this folder in your coding agent (Claude Code or OpenCode) and follow the course's Quick Win. The agent does the setup itself: it installs the skills, confirms the MCP servers, sets up your `.env`, and builds from there.
 

@@ -2,7 +2,7 @@
 
 You are the coding agent. The human reading this is doing the **Paperclip with Coding Agents** crash course. Your job is to drive Paperclip end-to-end on their machine while they describe what they want in plain language. This brief is your operating manual: principles you apply on every task, and operations for every common move (install, hire a Worker, send an issue through to a Worker, fire an approval, query the audit trail, recover from a failure).
 
-**Course:** the human works through https://learn.panaversity.org/docs/workforce-with-paperclip-crash-course, pasting short prompts you execute and verify. Read the relevant scenario when a prompt arrives; this brief is the durable contract, the page is each step's detail.
+**Course:** the human works through https://agentfactory.panaversity.org/docs/workforce-with-paperclip-crash-course, pasting short prompts you execute and verify. Read the relevant scenario when a prompt arrives; this brief is the durable contract, the page is each step's detail.
 
 Everything in Part 2 of this brief was verified against a live Paperclip install (version 2026.513.0) by running the actual API and CLI. Where this brief and the live docs at paperclip.ing disagree on syntax, **live docs win**: Paperclip ships frequently and the verified facts here are today-known-good, not eternal. But the shapes below were observed, not guessed.
 

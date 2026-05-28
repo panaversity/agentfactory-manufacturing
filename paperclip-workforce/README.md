@@ -1,6 +1,6 @@
 # Paperclip base (Manufacturing track)
 
-The starting point for the Workforce with Paperclip crash course on the Manufacturing track of [The AI Agent Factory](https://learn.panaversity.org). You direct; your coding agent stands up Paperclip and runs a managed AI workforce (companies, Workers, issues, approvals, budgets, an audit trail) from prompts you paste.
+The starting point for the Workforce with Paperclip crash course on the Manufacturing track of [The AI Agent Factory](https://agentfactory.panaversity.org). You direct; your coding agent stands up Paperclip and runs a managed AI workforce (companies, Workers, issues, approvals, budgets, an audit trail) from prompts you paste.
 
 Open this folder in your coding agent (Claude Code or OpenCode) and follow the course. The agent does the setup itself: it onboards Paperclip, installs Paperclip's operator skills, and drives the API and CLI from there.
 

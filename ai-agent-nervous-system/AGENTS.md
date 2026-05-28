@@ -1,34 +1,34 @@
-# Production Worker base: the brief your general agent builds from
+# AI Agent Nervous System base: the brief your general agent builds from
 
 You build; the human directs and verifies. Write the code, run it, show the command and its output, and prove each step before the next. Past tense means it ran and you saw the result.
 
 You are a **general agent** (Claude Code, OpenCode, or similar): you do the Inngest wiring, the function-host setup, the dev-server checks, and the verification, not just code generation. Drive the whole build from this brief plus the prompts the human pastes.
 
-**Course:** the human works through this course page, pasting build prompts you execute and verify: https://agentfactory.panaversity.org/docs/production-worker-crash-course
+**Course:** the human works through this course page, pasting build prompts you execute and verify: https://agentfactory.panaversity.org/docs/ai-agent-nervous-system-crash-course
 
 **Read the lesson when a build prompt arrives, and never ask which phase the human is on.** The Quick Win sets up THIS base and proves durability on it, not a throwaway: install the Inngest skills, bring the MCP servers online, start the dev server, then build one minimal durable function (`step.run` + `step.sleep`) and break it and replay it to watch the completed step return from memo. It is the first thing the human does in this folder. A "one durable function with `step.run` and `step.sleep`" prompt is that setup-and-prove pass. The full build wraps your floor (a minimal agent you build fresh, or the human's own Worker) in this same folder; a prompt that names the customer-support Worker, an event trigger, the cron, flow control, or the approval gate is the full build. Infer the phase from the prompt, fetch just that section of the course page, read it, then plan. Read only the section you need; this brief is the durable contract, the page is the step's detail. No web-fetch tool? Say so once and work from this brief plus the prompt.
 
 The human is a learner, not a client: plan before you build, explain in plain language, move one concept at a time, and prefer the simplest honest thing that works, naming what a heavier choice buys when you reach for it. The course prompts are short on purpose; this brief is the context that lets them stay short.
 
-This folder is a bare base, not a project: no `src/`, no pinned dependencies. You build a minimal floor (or open the human's own Worker), below, and construct the Inngest envelope on top of it. Confirm any Inngest, OpenAI Agents SDK, or MCP API through Context7 or `inngest.com/llms.txt` before you write it. This file pins no versions; when the docs disagree with it, the docs win.
+This folder is a bare base, not a project: no `src/`, no pinned dependencies. You build a minimal floor (or open the human's own Worker), below, and construct the Inngest nervous system on top of it. Confirm any Inngest, OpenAI Agents SDK, or MCP API through Context7 or `inngest.com/llms.txt` before you write it. This file pins no versions; when the docs disagree with it, the docs win.
 
 ## Build the floor
 
-The envelope needs the smallest Worker it can wrap, not a finished product. The human picks one of two floors:
+The nervous system needs the smallest Worker it can wrap, not a finished product. The human picks one of two floors:
 
 - **Their own Worker.** If they have the Course #4 Digital FTE (or any agent of their own), open it. The one thing you must locate is the agent invocation, an `await Runner.run(...)` call: that is what becomes durable. Do not rebuild it; wrap what is there.
 - **A minimal fresh floor** (the common case; do not make them rebuild Course #4 first). Build it from one prompt: a minimal `SandboxAgent` (OpenAI Agents SDK) on a local sandbox that drafts a reply to a customer email and can `issue_refund`, with the refund approval-gated (`@function_tool(needs_approval=True)`), writing an audit row for every action. It is Neon-backed, like the Digital FTE base: it reads its handful of sample customers from a Neon Postgres table and writes its audit trail to a Neon `audit_log` table, both provisioned over the Neon MCP. No pgvector and no custom MCP server, though, the floor reads and writes Neon directly through typed functions. Keep it small: it exists to be wrapped, not shipped.
 
-Before wrapping, confirm the floor has the two things the envelope hooks into: an `await Runner.run(agent, ...)` to make durable, and an approval-gated tool to gate. Pointing the finished envelope at the human's own Course #4 Worker is the closing challenge, not the starting requirement.
+Before wrapping, confirm the floor has the two things the nervous system hooks into: an `await Runner.run(agent, ...)` to make durable, and an approval-gated tool to gate. Pointing the finished nervous system at the human's own Course #4 Worker is the closing challenge, not the starting requirement.
 
 ## What you are building
 
-Your floor becomes a **Production Worker** by wrapping it in an Inngest operational envelope. The agent's logic does not change; what changes is how the world reaches it and what happens when something breaks:
+Your floor becomes a **Production Worker** by wrapping it in an Inngest nervous system. The agent's logic does not change; what changes is how the world reaches it and what happens when something breaks:
 
 1. **Triggers.** The Worker stops being something you run by hand. It wakes on events (`customer/email.received`), a daily cron, and webhooks.
 2. **Durable execution.** The agent invocation (`Runner.run`) runs inside `step.run`: it survives crashes, retries transient failures, and is observable end to end in the dev-server dashboard.
 3. **Flow control.** Concurrency caps, throttling, and batching protect the OpenAI rate limit and your datastore's connection limit.
-4. **Durable human-in-the-loop, the one place the envelope reaches inside.** The floor already pauses for refund approval: the SDK raises an approval interruption on the `issue_refund` tool. But that pause is ephemeral. It lives only as long as the process, so a crash, a deploy, or a reviewer who takes four hours loses the pending approval. You make it durable with `step.wait_for_event`: the function suspends, a notification goes to the reviewer, and the decision event resumes the serialized `RunState` whenever it arrives. This is the honest shape of the course: the envelope wraps the floor, and the single internal it improves is durable suspension, because an ephemeral in-process pause is exactly the gap Inngest closes.
+4. **Durable human-in-the-loop, the one place the nervous system reaches inside.** The floor already pauses for refund approval: the SDK raises an approval interruption on the `issue_refund` tool. But that pause is ephemeral. It lives only as long as the process, so a crash, a deploy, or a reviewer who takes four hours loses the pending approval. You make it durable with `step.wait_for_event`: the function suspends, a notification goes to the reviewer, and the decision event resumes the serialized `RunState` whenever it arrives. This is the honest shape of the course: the nervous system wraps the floor, and the single internal it improves is durable suspension, because an ephemeral in-process pause is exactly the gap Inngest closes.
 
 End state: the same agent, now event-driven, durable, rate-controlled, and gating approvals through a primitive that survives restarts, with every meaningful action still writing its audit row.
 
@@ -86,7 +86,7 @@ Your floor, unchanged inside, wrapped in four layers. Each is standing architect
 
 ## Rules that prevent silent failures
 
-The envelope's own rules (these always bind):
+The nervous system's own rules (these always bind):
 
 - **Dev mode is opt-in, and silent if you forget.** The SDK defaults to production/Cloud mode, which then demands a signing key and ignores your local dev server. `INNGEST_DEV=1` in `.env` (already set) or `is_production=False` on the client turns on dev mode. Do one; with neither, the host comes up in Cloud mode and nothing connects.
 - **One function host, one dev server.** Two hosts against one dev server, or one host discovered twice, de-syncs function state and produces silent stalls: runs that hang with no error. Restart both together when in doubt.
