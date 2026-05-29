@@ -10,8 +10,16 @@
 //   node ledger.mjs write '<row-json>'   -> insert one decision row
 //   node ledger.mjs list <approval_id>   -> read rows back for one approval
 
-import { neon } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
+
+// The Neon driver is lazy-imported INSIDE the DB functions below, never at module top,
+// so the pure helpers (ledgerJoin, validation) import with zero dependencies. Swap this
+// one line for node-postgres `pg` (`const { Pool } = await import("pg")`) for a direct
+// TCP Postgres; the SQL is identical. Confirm the driver surface via its README / Context7.
+async function getNeon(databaseUrl) {
+  const { neon } = await import("@neondatabase/serverless");
+  return neon(databaseUrl);
+}
 
 const REQUIRED = ["approval_id", "principal", "acting_on_behalf_of", "action_taken"];
 const ACTIONS = new Set(["approve", "reject", "request_revision", "surface_to_owner"]);
@@ -36,7 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_governance_ledger_approval ON governance_ledger (
 `;
 
 export async function initLedger(databaseUrl) {
-  const sql = neon(databaseUrl);
+  const sql = await getNeon(databaseUrl);
   // The driver runs one statement per call; split the DDL.
   for (const stmt of CREATE_SQL.split(";").map((s) => s.trim()).filter(Boolean)) {
     await sql.query(stmt);
@@ -50,7 +58,7 @@ export async function writeLedgerRow(databaseUrl, row) {
   if (!ACTIONS.has(row.action_taken)) {
     throw new Error(`action_taken must be one of ${[...ACTIONS].join(", ")}`);
   }
-  const sql = neon(databaseUrl);
+  const sql = await getNeon(databaseUrl);
   const ledger_id = row.ledger_id ?? `gl_${randomUUID()}`;
   const timestamp = row.timestamp ?? new Date().toISOString();
   // Parameterized insert; insert-only, never an UPDATE.
@@ -71,7 +79,7 @@ export async function writeLedgerRow(databaseUrl, row) {
 }
 
 export async function listForApproval(databaseUrl, approvalId) {
-  const sql = neon(databaseUrl);
+  const sql = await getNeon(databaseUrl);
   const { rows } = await sql.query(
     `SELECT * FROM governance_ledger WHERE approval_id = $1 ORDER BY timestamp`,
     [approvalId],
