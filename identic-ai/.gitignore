@@ -1,0 +1,29 @@
+# Secrets: never commit a filled-in .env
+.env
+.env.local
+.env.*.local
+
+# Signing keys: the ed25519 private key for the delegate is never committed
+*.pem
+keys/
+
+# Local Paperclip sandbox data (embedded Postgres lives here)
+paperclip-data/
+.paperclip/
+
+# Python (your agent may build Python helpers on top of this base)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
