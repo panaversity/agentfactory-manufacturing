@@ -23,7 +23,7 @@ Before wrapping, confirm the floor has the two things the nervous system hooks i
 
 ## What you are building
 
-Your floor becomes a **Production Worker** by wrapping it in an Inngest nervous system. The agent's logic does not change; what changes is how the world reaches it and what happens when something breaks:
+Your floor becomes an **AI Worker** by wrapping it in an Inngest nervous system. The agent's logic does not change; what changes is how the world reaches it and what happens when something breaks:
 
 1. **Triggers.** The Worker stops being something you run by hand. It wakes on events (`customer/email.received`), a daily cron, and webhooks.
 2. **Durable execution.** The agent invocation (`Runner.run`) runs inside `step.run`: it survives crashes, retries transient failures, and is observable end to end in the dev-server dashboard.
@@ -55,7 +55,7 @@ End state: the same agent, now event-driven, durable, rate-controlled, and gatin
 
 - **Bring the MCP servers online.** Neon, Context7, and `inngest-dev` are declared in `.mcp.json` and `opencode.json`; you do not configure them. Context7 is keyless. Neon authorizes over OAuth: a browser window opens, the human signs in free at neon.com and clicks Authorize, once. This is how the floor provisions and inspects its Postgres, so do it whether the floor is fresh or the human's own Worker. `inngest-dev` points at the local dev server and only resolves while it runs (next step), so seeing no Inngest tools until then is expected.
 
-- **Run the two processes.** The Production Worker is two processes side by side: the Python function host (`uv run uvicorn ... --port 8000 --reload`, serving `inngest.fast_api.serve`) and the Inngest dev server (`npx inngest-cli@latest dev`, on `:8288`). The `--reload` matters: the break-and-replay beats edit a step's code and expect the host to pick it up, which only happens with auto-reload. The dev server auto-discovers the function host. One function host per dev server; a second one de-syncs state and stalls runs silently.
+- **Run the two processes.** The AI Worker is two processes side by side: the Python function host (`uv run uvicorn ... --port 8000 --reload`, serving `inngest.fast_api.serve`) and the Inngest dev server (`npx inngest-cli@latest dev`, on `:8288`). The `--reload` matters: the break-and-replay beats edit a step's code and expect the host to pick it up, which only happens with auto-reload. The dev server auto-discovers the function host. One function host per dev server; a second one de-syncs state and stalls runs silently.
 
 - **Then have the human restart you.** Newly installed skills and the freshly wired `inngest-dev` MCP do not load mid-session. Ask the human to exit and relaunch in this folder, then confirm the boundary: with the dev server running, list the `inngest-dev` tools you can see (`list_functions`, `send_event`, `invoke_function`, `get_run_status`, and the rest). No tools means the dev server is not running, or the restart has not happened.
 
