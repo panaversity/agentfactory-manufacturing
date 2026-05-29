@@ -1,0 +1,29 @@
+# Secrets: never commit a filled-in .env
+.env
+.env.local
+.env.*.local
+
+# Python (your agent builds Python eval suites on top of this base)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+
+# Eval and trace artifacts the agent generates (not base payload)
+traces-fixtures/
+production-samples/
+reports/eval-*.md
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
