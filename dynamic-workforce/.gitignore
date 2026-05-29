@@ -1,0 +1,25 @@
+# Secrets: never commit a filled-in .env
+.env
+.env.local
+.env.*.local
+
+# Paperclip local install data + stub logs
+.paperclip/
+*.log
+worker-stub.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
