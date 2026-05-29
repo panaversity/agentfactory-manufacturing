@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "Neon": {
+      "type": "http",
+      "url": "https://mcp.neon.tech/mcp"
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "paperclip": {
+      "command": "npx",
+      "args": ["-y", "@paperclipai/mcp-server"],
+      "env": {
+        "PAPERCLIP_API_URL": "http://127.0.0.1:3100",
+        "PAPERCLIP_API_KEY": "local-trusted"
+      }
+    }
+  }
+}

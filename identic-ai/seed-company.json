@@ -1,0 +1,98 @@
+{
+  "note": "Maya's company, as a seed for the local Paperclip sandbox. The agent loads this so a reader with no Course 5-7 deployment has a gradable company on day one. Field shapes follow Paperclip's verified create bodies (POST /api/companies, then POST /api/companies/:id/agents). Confirm the exact field set against the running install's GET /llms/agent-configuration/<adapterType>.txt before posting; Paperclip drifts. The four Workers below run on the cheap no-LLM `process` adapter by default so the sandbox costs nothing to seed; switch a Worker to a local LLM adapter only when a scenario needs real reasoning.",
+  "company": {
+    "name": "Maya Customer Support",
+    "description": "Respond to customer inquiries within 4 hours, with refund and budget decisions made consistently and within policy. The owner (Maya) governs through an approval gate; this course delegates the routine slice of that gate to her Identic AI.",
+    "budgetMonthlyCents": 800000,
+    "requireBoardApprovalForNewAgents": true
+  },
+  "workers": [
+    {
+      "name": "Tier-1 Support",
+      "title": "Tier-1 Customer Support",
+      "role": "general",
+      "adapterType": "process",
+      "adapterConfig": {
+        "command": "sh",
+        "args": ["-c", "echo tier-1 heartbeat"]
+      },
+      "capabilities": "Reads customer records and drafts first-response replies. Issues refunds up to $50 without approval. Refunds over $50 and any outbound external email require board approval.",
+      "permissions": { "canCreateAgents": false },
+      "budgetMonthlyCents": 100000,
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 60,
+          "wakeOnDemand": true
+        }
+      }
+    },
+    {
+      "name": "Tier-2 Specialist",
+      "title": "Tier-2 Support Specialist",
+      "role": "general",
+      "adapterType": "process",
+      "adapterConfig": {
+        "command": "sh",
+        "args": ["-c", "echo tier-2 heartbeat"]
+      },
+      "capabilities": "Handles escalated and complex cases. Issues refunds up to $250 without approval. Refunds over $250, budget overrides, and contract questions require board approval.",
+      "permissions": { "canCreateAgents": false },
+      "budgetMonthlyCents": 150000,
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 60,
+          "wakeOnDemand": true
+        }
+      }
+    },
+    {
+      "name": "Manager-Agent",
+      "title": "Support Manager Agent",
+      "role": "general",
+      "adapterType": "process",
+      "adapterConfig": {
+        "command": "sh",
+        "args": ["-c", "echo manager heartbeat"]
+      },
+      "capabilities": "Detects capability gaps, drafts hire requests, and walks them through the board. Cannot create agents directly; every hire and termination routes through an approval.",
+      "permissions": { "canCreateAgents": false },
+      "budgetMonthlyCents": 80000,
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 60,
+          "wakeOnDemand": true
+        }
+      }
+    },
+    {
+      "name": "Legal Specialist",
+      "title": "Legal and Contract Specialist",
+      "role": "general",
+      "adapterType": "process",
+      "adapterConfig": {
+        "command": "sh",
+        "args": ["-c", "echo legal heartbeat"]
+      },
+      "capabilities": "Reviews contracts and compliance questions. The Course 7 envelope-extension hire. All contract interpretations that bind the company require board approval.",
+      "permissions": { "canCreateAgents": false },
+      "budgetMonthlyCents": 300000,
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 60,
+          "wakeOnDemand": true
+        }
+      }
+    }
+  ],
+  "demo_approval_flood": {
+    "note": "Decision 6 seeds a flood of pending approvals so Claudia can auto-clear the routine band and surface the consequential ones. Generate these as real Paperclip approvals (POST /api/companies/:id/approvals) at run time, modeled on the bands in course-seven-export/approvals.json. A reasonable demo flood: ~15 refunds spread across the bands Maya clears fast (small duplicate-charge and billing-error refunds), 2-3 that sit outside the delegated envelope (a large refund on a new account with prior refunds; a budget override above the delegated cap), so the surfaced set is non-empty.",
+    "suggested_counts": {
+      "routine_inside_envelope": 15,
+      "consequential_to_surface": 3
+    }
+  }
+}
