@@ -131,19 +131,20 @@ This stack moves fast. The concept is yours; the exact import path, class name, 
   The Claude Agent SDK has no turnkey DeepEval agent processor; instrument it with the generic `@observe` (the `deepeval-tracing` skill) or send its OTel traces to Phoenix.
 - `deepeval test run` works and wraps pytest, but plain `pytest evals/output/` works in all versions if the CLI hangs. Either is valid.
 
-### Ragas (pin `ragas==0.4.3`; no skill, pin it all)
+### Ragas (pin `ragas==0.4.3` AND `langchain<1.0`; no skill, pin it all)
 
+- **Pin langchain too, or `import ragas` fails.** A fresh `pip install ragas==0.4.3` with no other constraint pulls langchain 1.x, whose `langchain_community.chat_models.vertexai` was removed, so `import ragas` raises `ModuleNotFoundError` before any eval runs. Pin alongside Ragas: `langchain<1.0`, `langchain-community<0.4`, `langchain-core<1.0`, `langchain-openai<1.0` (verified working set: langchain 0.3.30, langchain-community 0.3.31, langchain-core 0.3.86, langchain-openai 0.3.35).
 - v1 sample fields: `user_input` / `response` / `retrieved_contexts` / `reference`. The legacy `question` / `answer` / `contexts` / `ground_truth` names emit DeprecationWarnings; use the v1 names.
 - `from ragas.metrics import ContextRelevance` (PascalCase). It surfaces in the results frame under the column `nv_context_relevance` (an NVIDIA-style implementation). The old `context_relevancy` (snake) is REMOVED; use `ContextRelevance` or `ContextPrecision`.
-- Use `llm_factory` / `embedding_factory`, not the deprecated `LangchainLLMWrapper` / `LangchainEmbeddingsWrapper`:
+- **Use the Langchain wrappers for the LLM and embeddings; the `llm_factory` / `embedding_factory` path NaNs the headline metric in 0.4.3.** Live-verified: `llm_factory` returns an `InstructorLLM` with no `agenerate_text`, so `ContextRelevance` and `AnswerCorrectness` come back all-NaN; a sync `OpenAI()` client also breaks async embeddings. The path that scores all five metrics with zero NaN rows is:
   ```python
-  from ragas.llms import llm_factory
-  from ragas.embeddings import embedding_factory
-  from openai import OpenAI
-  client = OpenAI()
-  llm = llm_factory("gpt-4o-mini", client=client)
-  emb = embedding_factory("openai", model="text-embedding-3-small", client=client)
+  from ragas.llms import LangchainLLMWrapper
+  from ragas.embeddings import LangchainEmbeddingsWrapper
+  from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+  llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
+  emb = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-3-small"))
   ```
+  (Ragas docs may steer you to the factories for forward-compat; in 0.4.3 they do not work for these metrics, so the wrappers win. Re-check when you bump Ragas.)
 - Cap concurrency to stay under the judge's TPM limit, or rows return NaN: `evaluate(..., run_config=RunConfig(max_workers=4))` (`from ragas.run_config import RunConfig`). At 30 examples x 5 metrics on a gpt-4o-mini judge, a default config returns NaN rows.
 
 ### OpenAI Evals API (Path B trace + output evals; no skill, pin it all)
@@ -164,7 +165,7 @@ This stack moves fast. The concept is yours; the exact import path, class name, 
 
 The base ships the standing contract only: this brief, `CLAUDE.md`, `README.md`, `.env.example`, `.mcp.json`, `opencode.json`, `maya-stub.py`, and `corpus/`. You build everything else from prompts:
 
-- `requirements.txt` (you pin it in Decision 1), the `evals/` tree, `datasets/golden.json`, `scripts/validate-dataset.sh`, `datasets/README.md`.
+- `requirements.txt` (you pin it in Decision 1): `deepeval==4.0.5`, `ragas==0.4.3` with `langchain<1.0` + `langchain-community<0.4` + `langchain-core<1.0` + `langchain-openai<1.0` (without those constraints `import ragas` fails on langchain 1.x), `openai`, `pytest`. Plus the `evals/` tree, `datasets/golden.json`, `scripts/validate-dataset.sh`, `datasets/README.md`.
 - The DeepEval suites, the Ragas suite, the OpenAI Evals (or Phoenix evaluator) trace harness, the safety/envelope metrics, the regression comparator, the CI workflow, the Phoenix query scripts.
 - The Simulated-track fixtures are agent-generated, not zip payload: build the pre-record harness (read `golden.json`, call a cheap model OR `maya-stub.py`, write JSON per example to `traces-fixtures/`); build the regression-injection set (degrade 20% of Decision 2 outputs); seed TutorClaw's pgvector store by chunking and embedding `corpus/` into Neon (`text-embedding-3-small` -> `VECTOR(1536)`, cosine `<=>`). These are reproducible artifacts, made once, not shipped.
 
