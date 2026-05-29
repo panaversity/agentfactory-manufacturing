@@ -34,7 +34,7 @@ A nine-layer eval pyramid, built bottom-up across the seven Decisions: **output*
 
 ## Prep the base (the human pastes one prompt; you run the steps)
 
-- **Check the runtimes.** `python3 --version` must be 3.11+ (the eval frameworks). `node --version` must be 20+ (the `phoenix` MCP is an `npx` CLI). If either is missing, tell the human; do not try to install it silently.
+- **Check the runtimes.** `python3 --version` must be 3.11+ (the eval frameworks). Phoenix's `px.launch_app()` (Decision 7) needs 3.11-3.13; on Python 3.14 launch with `phoenix serve` instead, since arize-phoenix 16.3.0 predates 3.14. `node --version` must be 20+ (the `phoenix` MCP is an `npx` CLI). If either is missing, tell the human; do not try to install it silently.
 
 - **Install the skills.** Run, in this folder:
 
@@ -155,7 +155,7 @@ This stack moves fast. The concept is yours; the exact import path, class name, 
 
 ### Phoenix (local observability; `arize-phoenix==16.3.0`, `@arizeai/phoenix-mcp@4.0.13`)
 
-- Launch in-process for the lab: `pip install arize-phoenix` then `import phoenix as px; px.launch_app()`. The UI and the OTLP-HTTP collector both serve on `http://localhost:6006`; the ingest path is `/v1/traces`; GraphQL is at `/graphql`; gRPC OTLP is on `4317`. No Docker, no key, auth off by default.
+- Launch in-process for the lab: `pip install arize-phoenix` then `import phoenix as px; px.launch_app()`. The UI and the OTLP-HTTP collector both serve on `http://localhost:6006`; the ingest path is `/v1/traces`; GraphQL is at `/graphql`; gRPC OTLP is on `4317`. No Docker, no key, auth off by default. On Python 3.14, `px.launch_app()` times out (arize-phoenix 16.3.0 predates 3.14): use `phoenix serve` (same UI and collector on :6006) or pin Python to 3.11-3.13. Phoenix routes a trace to a project by the `openinference.project.name` resource attribute, not `service.name`; `maya-stub.py` sets it to `maya-stub`, so the traces land under the `maya-stub` project in the UI.
 - The Docker image `arizephoenix/phoenix` is the multi-user production shape only, not the lab one.
 - Modern tracing setup: `from phoenix.otel import register; register(auto_instrument=True)` sends to localhost by default; `PHOENIX_COLLECTOR_ENDPOINT` overrides the target.
 - Trace landing for the runtimes is via OpenInference instrumentors: `openinference-instrumentation-claude-agent-sdk` (Path A) or `openinference-instrumentation-openai-agents` (Path B). `maya-stub.py` bypasses both: it posts hand-built OTLP spans directly with `opentelemetry-exporter-otlp-proto-http`, the same vendor-neutral route the Simulated track uses for replay.
@@ -178,7 +178,7 @@ Do NOT ship a pre-indexed vector tarball or pre-recorded fixture pile; that rots
 - **Decision 4:** `EnvelopeRespectMetric` passes the in-envelope Claudia decision and fails a genuine violation; the red-team set surfaces at least 3 real catches; confidence < 0.7 that was auto-approved is flagged.
 - **Decision 5:** Ragas scores TutorClaw on the five metrics with no NaN rows; the OOD canary (`context_recall` + `context_precision` near zero) fires on an out-of-corpus question.
 - **Decision 6:** `scripts/run-all-evals.sh` aggregates Decisions 2-5, `check-regressions.py` flags a critical-metric drop beyond tolerance against the baseline, and the synthetic-regression fixture makes the detector fire before you trust it.
-- **Decision 7:** `px.launch_app()` is up; a trace from `maya-stub.py` (or the replay) lands in Phoenix; the three health-summary query scripts emit markdown; the promotion script turns a sampled trace into a candidate eval example.
+- **Decision 7:** Phoenix is up (`phoenix serve` or `px.launch_app()`); a trace from `maya-stub.py` (or the replay) lands in the `maya-stub` project in Phoenix; the three health-summary query scripts emit markdown; the promotion script turns a sampled trace into a candidate eval example.
 
 ## Keys
 

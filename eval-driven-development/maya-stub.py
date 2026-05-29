@@ -35,7 +35,8 @@ your agent writes in Decision 1:
 
   pip install "opentelemetry-sdk==1.42.1" "opentelemetry-exporter-otlp-proto-http==1.42.1"
 
-Run it (after `import phoenix as px; px.launch_app()` is up on :6006):
+Run it (after Phoenix is up on :6006 via `phoenix serve`, or
+`import phoenix as px; px.launch_app()` on Python 3.11-3.13):
 
     python3 maya-stub.py
 
@@ -67,8 +68,12 @@ INPUT_VALUE = "input.value"
 OUTPUT_VALUE = "output.value"
 TOOL_NAME = "tool.name"
 
+# Phoenix routes spans to a PROJECT by the openinference.project.name resource
+# attribute, not by service.name, so set it explicitly for a named project.
 provider = TracerProvider(
-    resource=Resource.create({"service.name": "maya-stub"})
+    resource=Resource.create(
+        {"service.name": "maya-stub", "openinference.project.name": "maya-stub"}
+    )
 )
 provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint=ENDPOINT)))
 tracer = provider.get_tracer("maya-stub")
