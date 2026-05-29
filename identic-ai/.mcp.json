@@ -10,7 +10,11 @@
     },
     "paperclip": {
       "command": "npx",
-      "args": ["-y", "@paperclipai/mcp-server"]
+      "args": ["-y", "@paperclipai/mcp-server"],
+      "env": {
+        "PAPERCLIP_API_URL": "http://127.0.0.1:3100",
+        "PAPERCLIP_API_KEY": "local-trusted"
+      }
     }
   }
 }

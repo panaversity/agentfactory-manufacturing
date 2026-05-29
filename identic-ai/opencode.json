@@ -14,7 +14,11 @@
     "paperclip": {
       "type": "local",
       "command": ["npx", "-y", "@paperclipai/mcp-server"],
-      "enabled": true
+      "enabled": true,
+      "environment": {
+        "PAPERCLIP_API_URL": "http://127.0.0.1:3100",
+        "PAPERCLIP_API_KEY": "local-trusted"
+      }
     }
   }
 }
