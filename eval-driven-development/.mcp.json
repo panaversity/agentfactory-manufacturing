@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "Neon": {
+      "type": "http",
+      "url": "https://mcp.neon.tech/mcp"
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "phoenix": {
+      "command": "npx",
+      "args": ["-y", "@arizeai/phoenix-mcp@latest", "--baseUrl", "http://localhost:6006"]
+    }
+  }
+}
