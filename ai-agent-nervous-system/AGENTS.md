@@ -27,7 +27,7 @@ Your floor becomes an **AI Worker** by wrapping it in an Inngest nervous system.
 
 1. **Triggers.** The Worker stops being something you run by hand. It wakes on events (`customer/email.received`), a daily cron, and webhooks.
 2. **Durable execution.** The agent invocation (`Runner.run`) runs inside `step.run`: it survives crashes, retries transient failures, and is observable end to end in the dev-server dashboard.
-3. **Flow control.** Concurrency caps, throttling, and batching protect the OpenAI rate limit and your datastore's connection limit.
+3. **Flow control.** Concurrency caps, throttling, priority and fair-share, and batching protect the OpenAI rate limit and your datastore's connection limit, and keep one busy customer from starving the rest.
 4. **Durable human-in-the-loop, the one place the nervous system reaches inside.** The floor already pauses for refund approval: the SDK raises an approval interruption on the `issue_refund` tool. But that pause is ephemeral. It lives only as long as the process, so a crash, a deploy, or a reviewer who takes four hours loses the pending approval. You make it durable with `step.wait_for_event`: the function suspends, a notification goes to the reviewer, and the decision event resumes the serialized `RunState` whenever it arrives. This is the honest shape of the course: the nervous system wraps the floor, and the single internal it improves is durable suspension, because an ephemeral in-process pause is exactly the gap Inngest closes.
 
 End state: the same agent, now event-driven, durable, rate-controlled, and gating approvals through a primitive that survives restarts, with every meaningful action still writing its audit row.
@@ -76,7 +76,9 @@ Your floor, unchanged inside, wrapped in four layers. Each is standing architect
 
 ### Flow control (production scale)
 
-- `inngest.Concurrency(limit=10)` globally and `limit=2` keyed per customer; `inngest.Throttle(limit=100, period=timedelta(minutes=1))` to protect the OpenAI rate limit and your datastore's connection limit. (`limit=10` is the production intent; the local dev server is single-tenant and will not exercise that ceiling, so the cap is something you reason about and configure, not something dev pushes against.)
+- `inngest.Concurrency(limit=10)` globally and `limit=2` keyed per customer, to protect your datastore's connection limit. (`limit=10` is the production intent; the local dev server is single-tenant and will not exercise that ceiling, so the cap is something you reason about and configure, not something dev pushes against.)
+- `inngest.Throttle(limit=N, period=timedelta(minutes=1))` to protect a per-minute **rate** limit, where `N` is the actual downstream cap. OpenAI's default here is about 30 requests per minute, so use `limit=30`; do not paste a generic `100` or you will blow the cap. (Concurrency bounds how many run at once; throttle bounds how many start per minute. They protect different limits: a connection-pool count versus a per-minute rate.)
+- `inngest.Priority(run="event.data.tier_priority")` so higher-tier customers jump the queue (higher integer wins, range -600 to 600; the producer puts the tier's priority on the event, e.g. Enterprise=100, Pro=0, Free=-100), plus a per-tenant `Concurrency(key=...)` cap for fair-share so no single tenant monopolizes the pool.
 - Batch the health-check fan-out with `inngest.Batch` where per-event overhead matters.
 
 ### Durable HITL (the ephemeral approval, made durable)
@@ -110,6 +112,7 @@ If you bring your own Course #4 Worker (custom `customer-data` MCP, pgvector mem
 - **Setup:** `node --version` is 20+; with the dev server running, the dashboard at `:8288` lists the function host, and you can see the `inngest-dev` MCP tools.
 - **Triggers:** a `send_event` of `customer/email.received` starts a run; the daily cron, invoked manually with `invoke_function`, fans out one event per Pro/Enterprise customer.
 - **Durability:** a run whose agent step is forced to fail shows earlier steps memoized and only the failed step retried; after the fix, a replay resumes from the broken step and produces exactly one audit row per customer (no duplicates).
+- **Flow control (the one layer where "run it and watch" does not fully hold):** confirm the config is accepted and the function still runs. Only **concurrency** is observable on the dev server: send a burst and at most `limit` runs execute at once. The dev server does **not** enforce **throttle**, and **priority** and **fair-share** need sustained multi-tenant contention that a handful of test events never create. So those three you configure and reason about here, and verify the real effect in Inngest Cloud (or a branch deploy). Do not record "nothing is enforced" from a quiet single-tenant dev server; that is expected, not a bug.
 - **HITL:** an approval-gated refund suspends the run at `step.wait_for_event` (visible in the dashboard, status waiting and not completed), and a decision event resumes it to the correct approve or reject path, with the refund firing exactly once.
 
 ## Keys
