@@ -1,6 +1,6 @@
 # AGENTS.md: Paperclip operations brief
 
-You are the coding agent. The human reading this is doing the **Paperclip with Coding Agents** crash course. Your job is to drive Paperclip end-to-end on their machine while they describe what they want in plain language. This brief is your operating manual: principles you apply on every task, and operations for every common move (install, hire a Worker, send an issue through to a Worker, fire an approval, query the audit trail, recover from a failure).
+You are the coding agent. The human reading this is doing the **Paperclip with Coding Agents** crash course. Your job is to drive Paperclip end-to-end on their machine while they describe what they want in plain language. This brief is your operating manual: principles you apply on every task, and operations for every common move (install, hire the CEO, fire the heartbeat that makes it propose a strategy, carry the human's approval, watch the CEO build and work a task board, query the audit trail, recover from a failure).
 
 **Course:** the human works through https://agentfactory.panaversity.org/docs/workforce-with-paperclip-crash-course, pasting short prompts you execute and verify. Read the relevant scenario when a prompt arrives; this brief is the durable contract, the page is each step's detail.
 
@@ -41,16 +41,17 @@ A recurring rule across this brief: **Paperclip's CLI and API surface drifts, an
 
 Before any non-trivial operation, fetch the relevant live-doc section and confirm the current command shape with `--help`. The table maps intent to where to look.
 
-| If the human wants to...                  | Confirm via                                                                              |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Install Paperclip                         | `paperclip.ing/llms.txt`, then `npx paperclipai onboard --help`                          |
-| Run a second instance on the same machine | `paperclipai run --help` (note: no `--port` flag; port is set in `config.json`)          |
-| Hire a Worker                             | `paperclipai agent --help` (note: there is no `agent create` CLI; hire via the REST API) |
-| Send an issue to a Worker                 | `paperclipai issue create --help`                                                        |
-| Set up an approval                        | `paperclipai approval --help`                                                            |
-| Query the audit trail                     | `psql` into the embedded Postgres (connection string assembled from `config.json`)       |
-| Diagnose a problem                        | `paperclipai doctor` first, then the server logs                                         |
-| Tear down / start clean                   | use a fresh `--data-dir` (deletion is broken; see Safety rails)                          |
+| If the human wants to...                  | Confirm via                                                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Install Paperclip                         | `paperclip.ing/llms.txt`, then `npx paperclipai onboard --help`                                                          |
+| Run a second instance on the same machine | `paperclipai run --help` (note: no `--port` flag; port is set in `config.json`)                                          |
+| Hire the CEO (or any agent)               | the `paperclip-create-agent` skill first, then `paperclipai agent --help` (no `agent create` CLI; hire via the REST API) |
+| Make the CEO propose a strategy           | `paperclipai heartbeat run --help` (fires the heartbeat; the CEO files an `approve_ceo_strategy` approval)               |
+| Decide an approval (strategy, hire)       | `paperclipai approval --help`                                                                                            |
+| Direct a single task by hand              | `paperclipai issue create --help`                                                                                        |
+| Query the audit trail                     | `psql` into the embedded Postgres (connection string assembled from `config.json`)                                       |
+| Diagnose a problem                        | `paperclipai doctor` first, then the server logs                                                                         |
+| Tear down / start clean                   | use a fresh `--data-dir` (deletion is broken; see Safety rails)                                                          |
 
 If a `--help` listing or a doc path has clearly changed, surface it to the human and adjust.
 
@@ -75,7 +76,7 @@ If a `--help` listing or a doc path has clearly changed, surface it to the human
 
 ## Safety rails (non-negotiable)
 
-- **Deletion in Paperclip 2026.513.0 is broken or missing. Do not rely on it as an undo.** `company delete` returns HTTP 500 (an un-cascaded foreign-key constraint on `budget_policies`); the CLI `company delete` hits the same broken endpoint and fails silently (API error, exit 0). There is no agent-delete route (no `DELETE`, no archive, no deactivate), though agents CAN be reconfigured after creation via `PATCH /api/agents/:id` (budget, adapter, config; see the Agents section). **The practical consequence: you can edit a Worker but not delete one, so for a fully clean slate use a fresh `--data-dir`.**
+- **Deletion in Paperclip 2026.513.0 is broken or missing. Do not rely on it as an undo.** `company delete` returns HTTP 500 (an un-cascaded foreign-key constraint on `budget_policies`); the CLI `company delete` hits the same broken endpoint and fails silently (API error, exit 0). There is no agent-delete route (no `DELETE`, no archive, no deactivate), though agents CAN be reconfigured after creation via `PATCH /api/agents/:id` (budget, adapter, config; see the Agents section). **The practical consequence: you can edit an agent but not delete one, so for a fully clean slate use a fresh `--data-dir`.**
 - **Never `sudo` anything related to Paperclip.** It is a user-local install. If something owned by another user (especially `root`) is blocking you, STOP and surface to the human; privileged cleanup is theirs.
 - **Never write API keys (Anthropic, OpenAI, Gemini, etc.) to a file inside the project or to any committed file.** Export them in the shell, reference by env var. If the human pastes a key into chat, name the security issue, advise rotation, proceed without echoing it.
 - **Never start a paid-model adapter by default.** When a scenario needs a real LLM Worker, default to the cheapest current capable model (Gemini Flash, Haiku, GPT-mini-class) and use a free tier where one exists. Never default to Sonnet/Opus/GPT-5 without explicit human approval.
@@ -95,7 +96,7 @@ export ANTHROPIC_API_KEY="..."
 # Reference by name in any file; never inline the value.
 ```
 
-Never echo keys to chat, never commit them. The crash course's core scenarios run keyless (the `http` adapter plus a local stub Worker); only the budget scenario needs a real LLM adapter and therefore a key.
+Never echo keys to chat, never commit them. The CEO and every working agent run on a real model adapter, so the human exports a model key (Claude, OpenAI, or another provider) before Scenario 2. Default to the cheapest capable model; budgets cap the spend.
 
 ## Sourcing claims that exist only in this brief
 
@@ -113,7 +114,7 @@ Install Paperclip's own operator skills so you work from Paperclip's maintained 
 npx skills add https://github.com/paperclipai/paperclip --skill paperclip-create-agent diagnose-why-work-stopped --agent claude-code -y
 ```
 
-`paperclip-create-agent` is Paperclip's maintained hire flow (the authority on creating a Worker, including the current mutate route); `diagnose-why-work-stopped` is its troubleshooting forensics. They install into `.claude/skills/` (which OpenCode reads too). Then have the human restart you so the skills load. (Verified 2026-05-28: this multi-skill `--skill` form installs both into `.claude/skills/`. If a later version changes the syntax, fall back to the per-skill tree URL `https://github.com/paperclipai/paperclip/tree/master/skills/<name>`, or to Paperclip's first-party `paperclipai agent local-cli`.)
+`paperclip-create-agent` is Paperclip's maintained hire flow (the authority on creating an agent, including the current mutate route); `diagnose-why-work-stopped` is its troubleshooting forensics. They install into `.claude/skills/` (which OpenCode reads too). Then have the human restart you so the skills load. (Verified 2026-05-28: this multi-skill `--skill` form installs both into `.claude/skills/`. If a later version changes the syntax, fall back to the per-skill tree URL `https://github.com/paperclipai/paperclip/tree/master/skills/<name>`, or to Paperclip's first-party `paperclipai agent local-cli`.)
 
 ## Install and onboard
 
@@ -161,7 +162,7 @@ What it actually does (verified):
 - Prints a summary banner: Mode, Deploy, Bind, Auth, Server (port), API URL, UI URL, Database (path + port), Migrations, Agent JWT, Heartbeat default (the platform default heartbeat interval is 30 seconds; the banner prints it in milliseconds), DB Backup (auto-enabled, 60-minute interval, 30-day retention), Config path.
 - In `--bind lan` or `--bind tailnet` modes, issues a bootstrap API key. In the default `loopback` mode, **no bootstrap key is issued** (auth is trust-based on the loopback connection); the health endpoint reports `bootstrapInviteActive: false`. Do not go looking for a key in loopback mode; there isn't one.
 
-**Capture the bare host as `PAPERCLIP_API_URL` (there is a real trap here).** The onboard banner labels its API line `http://127.0.0.1:3100/api` and calls it "API URL". Do **not** capture that value verbatim. Every API route in this brief is written as `$PAPERCLIP_API_URL/api/...`, so a captured value that already ends in `/api` produces `.../api/api/...` and a 404 ("API route not found"). Capture the **bare host and port only**: `PAPERCLIP_API_URL=http://127.0.0.1:3100` (or whatever host and port onboard actually bound), with no `/api` suffix. Every route in this brief then resolves correctly as `$PAPERCLIP_API_URL/api/<route>`. Note for the stub Worker: `worker-stub.py` takes the bare host the same way and appends `/api` itself, so you pass it the same `PAPERCLIP_API_URL` value.
+**Capture the bare host as `PAPERCLIP_API_URL` (there is a real trap here).** The onboard banner labels its API line `http://127.0.0.1:3100/api` and calls it "API URL". Do **not** capture that value verbatim. Every API route in this brief is written as `$PAPERCLIP_API_URL/api/...`, so a captured value that already ends in `/api` produces `.../api/api/...` and a 404 ("API route not found"). Capture the **bare host and port only**: `PAPERCLIP_API_URL=http://127.0.0.1:3100` (or whatever host and port onboard actually bound), with no `/api` suffix. Every route in this brief then resolves correctly as `$PAPERCLIP_API_URL/api/<route>`.
 
 What to capture into a project-local file the human controls (never echoed to chat): `PAPERCLIP_API_URL` (the bare host, no `/api` suffix, per the trap above), the UI URL, the data-directory path, the embedded Postgres port, the config-file path, and (only in lan/tailnet modes) the bootstrap key.
 
@@ -208,7 +209,7 @@ There is no `paperclipai company create` CLI command. Use the REST API:
 ```bash
 curl -X POST "$PAPERCLIP_API_URL/api/companies" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Acme Customer Support", "description": "Respond to customer inquiries within 4 hours, with refund decisions made consistently and within policy."}'
+  -d '{"name": "Northwind", "description": "Launch a weekly AI newsletter and reach 1,000 subscribers in 90 days.", "budgetMonthlyCents": 2000}'
 ```
 
 The field is `description`, **not** `mission`. Unknown fields are silently dropped (a wrong field name fails quietly, not loudly). The response includes the company `id` and an `issuePrefix` (e.g. `ACM`); capture both. Company-level budget is `budgetMonthlyCents` (an integer, in cents).
@@ -217,20 +218,22 @@ The field is `description`, **not** `mission`. Unknown fields are silently dropp
 
 Optional structuring under a company: a goal has projects, a project has issues. For the crash course, one goal and one project. Goals take a `title`; projects take a `name`. Create them via the REST API the same way (`POST /api/companies/:id/goals`, `POST /api/companies/:id/projects`; confirm exact routes against the running API).
 
-## Agents (Workers) and adapters
+## Agents and adapters
 
-A **Worker** in Paperclip is a configured role: a name, a runtime (the adapter), permissions, a budget, a heartbeat schedule. The runtime is the adapter.
+An **agent** in Paperclip is an AI employee: a role, a runtime (the adapter), a manager it reports to, a budget, a heartbeat schedule. The **CEO is the first agent you hire** and the only one with no manager (it reports to the human, the board); on its first heartbeat it reads the company goal and proposes a strategy. The runtime is the adapter.
 
 ### The real adapter list
 
 Run `GET /api/adapters` against the running install to see the current set. As of 2026.525.0 it is: `acpx_local`, `claude_local`, `codex_local`, `cursor`, `cursor_cloud`, `gemini_local`, `grok_local`, `hermes_local`, `http`, `openclaw_gateway`, `opencode_local`, `pi_local`, `process`. **There is no `bash` adapter.** The two builtin no-LLM adapters are:
 
 - **`process`** (the default `adapterType`): runs a command on each heartbeat. It direct-spawns the command (no shell), so a shell command must be wrapped: `adapterConfig: {"command": "sh", "args": ["-c", "echo ..."]}`. Critically, **the `process` heartbeat does NOT hand the command the issue.** The injected env is only `PAPERCLIP_AGENT_ID`, `PAPERCLIP_COMPANY_ID`, `PAPERCLIP_API_URL`, `PAPERCLIP_RESOLVED_COMMAND`, `HOME`. A `process` Worker that needs to act on an issue must query the API for its assigned work. `process` is fine for "prove a heartbeat fires"; it cannot, on its own, work an issue to completion.
-- **`http`**: POSTs the heartbeat to a URL you configure (`adapterConfig: {"url": "http://127.0.0.1:8899/heartbeat"}`). **The `http` heartbeat POST carries the full issue payload** (see The heartbeat contract below). This is the adapter the crash course's lab uses, paired with a small local stub Worker (`worker-stub.py`). It demonstrates the real issue lifecycle with no LLM and no API key.
+- **`http`**: POSTs the heartbeat to a URL you configure (`adapterConfig: {"url": "..."}`). **The `http` heartbeat POST carries the full issue payload** (see the heartbeat-contract reference below). This and `process` are lower-level, no-LLM adapters; the crash course does **not** use them. They are kept here as Paperclip reference, for an agent later asked to wire a custom runtime.
 
-The LLM-runtime adapters (`claude_local`, `codex_local`, `gemini_local`, etc.) drive a real model and need that provider's API key. They are what you switch to when a Worker must do real reasoning, and what generates billable cost (which the budget scenario needs).
+The LLM-runtime adapters (`claude_local`, `codex_local`, `gemini_local`, and the rest) drive a real model and need that provider's API key. **These are what the crash course uses**: the CEO and its reports must reason, so they run on a model adapter (`claude_local` is Paperclip's default starting point). They generate the billable cost the budget scenario meters.
 
-### Hiring a Worker (the verified create body)
+### Hiring an agent: the CEO first (the verified create body)
+
+Use the `paperclip-create-agent` skill for the live hire flow; the field set below is the verified frame so you can recognize and sanity-check what it builds. The first agent is always the CEO.
 
 There is no `paperclipai agent create` CLI command. Running `paperclipai agent create --help` does NOT error; it prints the `agent` parent help (which lists only `list`, `get`, `local-cli`) and exits 0. Always check that the subcommand you want actually appears in the listed set, not just that the command did not error.
 
@@ -238,14 +241,16 @@ Hire via the REST API: `POST /api/companies/:id/agents`. The verified field set 
 
 ```json
 {
-  "name": "Tier-1 Customer Support",
-  "title": "Tier-1 Customer Support",
-  "role": "general",
-  "adapterType": "http",
-  "adapterConfig": { "url": "http://127.0.0.1:8899/heartbeat" },
-  "capabilities": "Reads CRM customer records and drafts replies. Refunds over $50 and outbound external email require board approval.",
-  "permissions": { "canCreateAgents": false },
-  "budgetMonthlyCents": 50,
+  "name": "CEO",
+  "title": "CEO",
+  "role": "ceo",
+  "adapterType": "claude_local",
+  "adapterConfig": {
+    "model": "<cheapest capable model; set via the skill / live API>"
+  },
+  "capabilities": "Reads the company goal, proposes a strategy for board approval, then creates and delegates tasks to its reports.",
+  "permissions": { "canCreateAgents": true },
+  "budgetMonthlyCents": 500,
   "runtimeConfig": {
     "heartbeat": {
       "enabled": true,
@@ -260,20 +265,20 @@ Hire via the REST API: `POST /api/companies/:id/agents`. The verified field set 
 Field notes:
 
 - **`name`** is the role name. **`title`** is a separate optional display field.
-- **`role`** is a fixed enum: `ceo`, `cto`, `cmo`, `cfo`, `security`, `engineer`, `designer`, `pm`, `qa`, `devops`, `researcher`, `general`. There is no customer-support value; use `general` (also the default) and put the actual job in `capabilities` and `title`.
-- **`adapterType`** + **`adapterConfig`** (both camelCase). For `http`, `adapterConfig` is `{"url": "..."}`. For `process`, it is `{"command": "sh", "args": ["-c", "..."]}`.
+- **`role`** is a fixed enum: `ceo`, `cto`, `cmo`, `cfo`, `security`, `engineer`, `designer`, `pm`, `qa`, `devops`, `researcher`, `general`. The first agent is the `ceo`; its reports take the matching role (`engineer`, `designer`, ...) or `general`. Put the specific job in `capabilities` and `title`.
+- **`adapterType`** + **`adapterConfig`** (both camelCase). For an LLM adapter (`claude_local`, etc.) the exact `adapterConfig` (model id, any env) is **not frozen here**; get it from the `paperclip-create-agent` skill or the live API. For reference, `http` uses `{"url": "..."}` and `process` uses `{"command": "sh", "args": ["-c", "..."]}`.
 - **`capabilities`** is a plain free-text string, not a structured object. There is no structured `authority_limits` field on agent-create; authority is described in prose here and enforced (where it is enforced at all) server-side.
-- **`permissions`** is an object (`{"canCreateAgents": bool}`), not a string array.
+- **`permissions`** is an object (`{"canCreateAgents": bool}`), not a string array. The CEO needs `canCreateAgents: true` so it can file hire approvals; a worker agent stays `false`.
 - **`budgetMonthlyCents`** is a single integer in cents. There is no token/tool-call split.
 - **`runtimeConfig.heartbeat`** holds the schedule: `enabled`, `intervalSeconds`, `wakeOnAssignment`, `maxConcurrentRuns`.
 
 Only `name` is strictly required; everything else has defaults (and a bare `{"name": "..."}` defaults `adapterType` to `process`).
 
-**Agents are mutable via the top-level route** `PATCH /api/agents/:agentId` (re-verified live on 2026.525.0): you can change `budgetMonthlyCents`, `adapterType`, and `adapterConfig` after creation, and each change is revisioned with rollback (`/api/agents/:agentId/config-revisions/.../rollback`); the activity log records `agent.updated`. The route is **top-level** (`/api/agents/:id`), NOT nested: `GET`/`PATCH` on `/api/companies/:id/agents/:agentId` returns 404, which earlier drafts mistook for 'agents are immutable.' There is still no agent DELETE, so a Worker can be reconfigured but not removed; for a fully clean slate use a fresh `--data-dir`. Verify a Worker via `GET /api/companies/:id/agents` (list) or `paperclipai agent get <id>`. `paperclipai agent list` needs `-C/--company-id`.
+**Agents are mutable via the top-level route** `PATCH /api/agents/:agentId` (re-verified live on 2026.525.0): you can change `budgetMonthlyCents`, `adapterType`, and `adapterConfig` after creation, and each change is revisioned with rollback (`/api/agents/:agentId/config-revisions/.../rollback`); the activity log records `agent.updated`. The route is **top-level** (`/api/agents/:id`), NOT nested: `GET`/`PATCH` on `/api/companies/:id/agents/:agentId` returns 404, which earlier drafts mistook for 'agents are immutable.' There is still no agent DELETE, so an agent can be reconfigured but not removed; for a fully clean slate use a fresh `--data-dir`. Verify an agent via `GET /api/companies/:id/agents` (list) or `paperclipai agent get <id>`. `paperclipai agent list` needs `-C/--company-id`.
 
-### The heartbeat contract (the `http` adapter)
+### The heartbeat contract (the `http` adapter, reference only)
 
-When work is assigned, Paperclip POSTs a heartbeat to the `http` Worker's configured `url`. The verified payload shape:
+The crash course uses model adapters, not `http`, so the CEO course never touches this; it is kept for an agent later asked to wire a custom `http` runtime. When work is assigned, Paperclip POSTs a heartbeat to the `http` agent's configured `url`. The verified payload shape:
 
 ```
 {
@@ -300,7 +305,9 @@ On continuation runs `context` also carries an `instruction` string and `validDi
 
 A Worker resolves its issue by posting a disposition back: `PATCH /api/issues/:issueId` with `{"status": "done", "comment": "..."}`. That route is **top-level** (`/api/issues/:id`), not nested under the company. In loopback mode no auth header is needed. A Worker that runs but posts no disposition gets escalated by Paperclip to `blocked` (the orchestration detects "the run succeeded but the issue has no disposition"). That escalation is the management plane working, not a bug.
 
-## Issues and assignment
+## Issues and assignment (tasks)
+
+In the CEO course the CEO creates and assigns tasks **itself**, on its heartbeats, after you approve its strategy. You create an issue by hand only when you want to direct one specific piece of work. Both paths use the same API below. (Paperclip's API calls these "issues"; the dashboard and this course call them "tasks".)
 
 An **issue** is a tracked unit of work: id, `identifier` (e.g. `ACM-1`), title, description, status, priority, optional project/goal links, optional `assigneeAgentId`.
 
@@ -342,7 +349,7 @@ Create body:
 }
 ```
 
-- **`type`** is a fixed enum: `hire_agent`, `approve_ceo_strategy`, `budget_override_required`, `request_board_approval`. For "a Worker action exceeded its authority," use `request_board_approval`.
+- **`type`** is a fixed enum: `hire_agent`, `approve_ceo_strategy`, `budget_override_required`, `request_board_approval`. For "an agent action exceeded its authority," use `request_board_approval`.
 - **`payload`** is free-form: whatever structured rationale you put in is stored verbatim. Put the action, amount, rationale, and alternatives here.
 - Issue linkage is via `--issue-ids <csv>` on the CLI (`paperclipai approval create -C <cid> --type request_board_approval --issue-ids <id> --payload '{...}'`), stored as `issueIds`. There is no top-level `issueId` field.
 
@@ -350,13 +357,13 @@ The decision flow: create -> `pending`; `paperclipai approval approve <id>` -> `
 
 **An approval is a decision record, not a state machine.** Approving a request does NOT automatically change the linked issue's status or execute the approved action. There is no "approval granted -> issue unblocked -> refund executed" wiring. Acting on an approved decision is a separate step. When you explain this to the human, be honest: the value of the approval flow is the _audited record of who decided what and why_, not an automated unblock.
 
-A `process` or stub `http` Worker will not _organically_ file an approval (it takes no authority-exceeding action). For the crash course, the human (acting as the board) creates the approval request directly. A real LLM Worker reasoning about a risky action is what files one organically.
+In the CEO course these are filed **organically by the CEO**, not by the human. On its first heartbeat the CEO files an `approve_ceo_strategy` approval (its strategic plan); when it wants to add a teammate it files a `hire_agent` approval (the proposed role, budget, and job). Both sit `pending` until the human decides them with `paperclipai approval approve <id>` (or `reject`, or request a revision and let the CEO resubmit). Nothing the approval covers proceeds until the human signs off; that gate is the human staying the board. (The human can also file `request_board_approval` directly to record an out-of-band decision.)
 
 ## Budgets
 
-Budget is set as `budgetMonthlyCents` at company and agent create time. It is consumed only when a Worker does **billable LLM work**: `process` and `http`-stub Workers generate zero cost (verified: firing heartbeats at them never moves `spentMonthlyCents`). There is no `cost_events` REST endpoint in 2026.513.0 (`/cost-events`, `/costs`, `/usage` all 404). Per-run cost lands in the `heartbeat_runs.usage_json` column, which is `null` for non-LLM adapters.
+Budget is set as `budgetMonthlyCents` at company and agent create time. There is a company ceiling and a per-agent cap, and either can pause an agent on its own. Because the CEO and its reports run on real model adapters, cost accrues from the start: per-run usage lands in the `heartbeat_runs.usage_json` column and aggregates into `spentMonthlyCents`. (There is no `cost_events` REST endpoint in 2026.513.0; `/cost-events`, `/costs`, `/usage` all 404. Read cost from the database, per the Audit-trail section.)
 
-The practical consequence for the crash course: a budget hard-stop can only be demonstrated with a real LLM-runtime adapter (e.g. `gemini_local` with a free Gemini key) that produces billable cost. With the keyless `http`-stub Worker, the budget is configured but never consumed.
+Budget behaviour the human will see: at **80%** utilisation Paperclip warns; at **100%** the agent is **paused automatically** and no more heartbeats fire. To demonstrate it deliberately, lower one agent's `budgetMonthlyCents` to a dollar or two and pile on enough work to cross the cap. The pause is the safety net working, not a failure.
 
 ## Audit trail
 
@@ -415,8 +422,8 @@ Doctor runs the same checks onboard runs internally. Most diagnostics start here
 
 1. **Port in use.** Another Paperclip (yours or a sibling project), or an unrelated service. Run the pre-install probe with the cwd-attribution step to disambiguate. Onboard auto-hops the port; for a deterministic second instance, edit `config.json` (see Configure).
 2. **Stale data directory.** A prior `<data-dir>/instances/default/` from an older version. Surface to the human; use `--data-dir <new-path>` for the new install and leave the old one untouched, or back it up and re-onboard.
-3. **No LLM API key.** A `claude_local`/`codex_local`/`gemini_local` Worker heartbeats but fails because the provider key isn't in the environment. The activity log shows the failure. Fix: export the key, restart the adapter or server. (The keyless `http`-stub path does not hit this.)
-4. **`http` Worker not resolving issues.** The Worker heartbeats but the issue never reaches `done`. Check: is the stub server actually running and reachable at the `adapterConfig.url`? Is it posting the disposition (`PATCH /api/issues/:id`)? A Worker that runs but posts no disposition leaves the issue to be escalated to `blocked`.
+3. **No LLM API key.** A `claude_local`/`codex_local`/`gemini_local` agent heartbeats but fails because the provider key isn't in the environment. The activity log shows the failure. Fix: export the key, restart the adapter or server. This is the most common Scenario 2 and 3 failure, because the CEO needs its model to reason.
+4. **An agent runs but no strategy or tasks appear.** The CEO heartbeats but files no `approve_ceo_strategy` approval, or an approved strategy produces no tasks. Most common cause: the model key is missing or wrong, so the run fails before the model reasons. Check the activity log and the heartbeat run transcript (`paperclipai activity list`, plus the run record). Confirm the key is exported and the adapter and model are valid. The `diagnose-why-work-stopped` skill is built for exactly this.
 5. **Onboard exits with an empty `db/` directory and no clear error.** A known initialization hiccup. Recovery: `rm -rf <data-dir>` and re-onboard. Do not try to repair the half-state.
 6. **Deletion 500s.** `company delete` is broken (un-cascaded FK). This is a Paperclip bug, not something you can fix. For a clean state, use a fresh `--data-dir`.
 
