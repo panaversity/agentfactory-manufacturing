@@ -1,0 +1,12 @@
+[project]
+name = "ai-agent-nervous-system"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.136.3",
+    "inngest>=0.5.18",
+    "openai-agents>=0.17.4",
+    "psycopg[binary]>=3.3.4",
+    "python-dotenv>=1.2.2",
+    "uvicorn[standard]>=0.48.0",
+]

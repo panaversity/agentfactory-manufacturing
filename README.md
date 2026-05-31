@@ -22,10 +22,11 @@ Open a course folder in your coding agent (Claude Code or OpenCode). `CLAUDE.md`
 
 The `worked-examples/` folder holds the **finished build** for a course, for after you have done it yourself. These are full reference solutions (the complete code, verified end to end), not bare bases, so they are deliberately kept out of the release zips. Treat them as the answer key: read them when you are stuck or want to compare, not as your starting point.
 
-| Course                           | Reference solution                                            |
-| -------------------------------- | ------------------------------------------------------------- |
-| Digital FTE                      | [`worked-examples/digital-fte/`](worked-examples/digital-fte) |
-| Owner Delegation with Identic AI | [`worked-examples/identic-ai/`](worked-examples/identic-ai)   |
+| Course                              | Reference solution                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------- |
+| Digital FTE                         | [`worked-examples/digital-fte/`](worked-examples/digital-fte)                         |
+| Owner Delegation with Identic AI    | [`worked-examples/identic-ai/`](worked-examples/identic-ai)                           |
+| Give Your AI Agent a Nervous System | [`worked-examples/ai-agent-nervous-system/`](worked-examples/ai-agent-nervous-system) |
 
 ## Adding a course
 
