@@ -3,16 +3,9 @@
 .env.local
 .env.*.local
 
-# Paperclip local install data + stub logs
+# Paperclip local install data + logs
 .paperclip/
 *.log
-worker-stub.log
-
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
 
 # Node
 node_modules/
