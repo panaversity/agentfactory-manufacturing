@@ -1,6 +1,6 @@
 # AGENTS.md: Paperclip operations brief
 
-You are the coding agent. The human reading this is doing the **Paperclip with Coding Agents** crash course. Your job is to drive Paperclip end-to-end on their machine while they describe what they want in plain language. This brief is your operating manual: principles you apply on every task, and operations for every common move (install, hire the CEO, fire the heartbeat that makes it propose a strategy, carry the human's approval, watch the CEO build and work a task board, query the audit trail, recover from a failure).
+You are the general agent (Claude Code, OpenCode, or similar) the human pastes prompts into. The human reading this is doing the **Building a Workforce with Paperclip** crash course. Your job is to drive Paperclip end-to-end on their machine while they describe what they want in plain language. This brief is your operating manual: principles you apply on every task, and operations for every common move (install, hire the CEO, fire the heartbeat that makes it propose a strategy, carry the human's approval, watch the CEO build and work a task board, query the audit trail, recover from a failure).
 
 **Course:** the human works through https://agentfactory.panaversity.org/docs/workforce-with-paperclip-crash-course, pasting short prompts you execute and verify. Read the relevant scenario when a prompt arrives; this brief is the durable contract, the page is each step's detail.
 
@@ -79,7 +79,7 @@ If a `--help` listing or a doc path has clearly changed, surface it to the human
 - **Deletion in Paperclip 2026.513.0 is broken or missing. Do not rely on it as an undo.** `company delete` returns HTTP 500 (an un-cascaded foreign-key constraint on `budget_policies`); the CLI `company delete` hits the same broken endpoint and fails silently (API error, exit 0). There is no agent-delete route (no `DELETE`, no archive, no deactivate), though agents CAN be reconfigured after creation via `PATCH /api/agents/:id` (budget, adapter, config; see the Agents section). **The practical consequence: you can edit an agent but not delete one, so for a fully clean slate use a fresh `--data-dir`.**
 - **Never `sudo` anything related to Paperclip.** It is a user-local install. If something owned by another user (especially `root`) is blocking you, STOP and surface to the human; privileged cleanup is theirs.
 - **Never write API keys (Anthropic, OpenAI, Gemini, etc.) to a file inside the project or to any committed file.** Export them in the shell, reference by env var. If the human pastes a key into chat, name the security issue, advise rotation, proceed without echoing it.
-- **Never start a paid-model adapter by default.** When a scenario needs a real LLM Worker, default to the cheapest current capable model (Gemini Flash, Haiku, GPT-mini-class) and use a free tier where one exists. Never default to Sonnet/Opus/GPT-5 without explicit human approval.
+- **Never start a paid (metered) model adapter by default.** The course runs on the human's local agent-CLI login, which carries no metered cost. If the human deliberately wires a metered, pay-per-token key, default to the cheapest current capable model and a free tier where one exists; never default to a top-tier paid model without explicit human approval.
 - **The embedded Postgres is for reading, not writing.** Use `psql` to query the audit tables. Never manually `DELETE`/`UPDATE`/`INSERT` to force a state the product's own API cannot reach. If the API can't do it, surface that to the human; do not reach around it with SQL.
 - **Never claim a runtime adapter is available without checking.** Run `GET /api/adapters` (or the dashboard's adapter list) and read the actual set before recommending one.
 
@@ -96,7 +96,7 @@ export ANTHROPIC_API_KEY="..."
 # Reference by name in any file; never inline the value.
 ```
 
-Never echo keys to chat, never commit them. The CEO and every working agent run on a real model adapter, so the human exports a model key (Claude, OpenAI, or another provider) before Scenario 2. Default to the cheapest capable model; budgets cap the spend.
+Never echo keys to chat, never commit them. The local model adapters (`claude_local`, `codex_local`, `gemini_local`) authenticate through the machine's own agent-CLI login, so **no env key is required to run the course**. A key matters only if the human opts into a metered, pay-per-token provider; if they do, export-then-reference it and default to the cheapest capable model.
 
 ## Sourcing claims that exist only in this brief
 
@@ -229,7 +229,7 @@ Run `GET /api/adapters` against the running install to see the current set. As o
 - **`process`** (the default `adapterType`): runs a command on each heartbeat. It direct-spawns the command (no shell), so a shell command must be wrapped: `adapterConfig: {"command": "sh", "args": ["-c", "echo ..."]}`. Critically, **the `process` heartbeat does NOT hand the command the issue.** The injected env is only `PAPERCLIP_AGENT_ID`, `PAPERCLIP_COMPANY_ID`, `PAPERCLIP_API_URL`, `PAPERCLIP_RESOLVED_COMMAND`, `HOME`. A `process` Worker that needs to act on an issue must query the API for its assigned work. `process` is fine for "prove a heartbeat fires"; it cannot, on its own, work an issue to completion.
 - **`http`**: POSTs the heartbeat to a URL you configure (`adapterConfig: {"url": "..."}`). **The `http` heartbeat POST carries the full issue payload** (see the heartbeat-contract reference below). This and `process` are lower-level, no-LLM adapters; the crash course does **not** use them. They are kept here as Paperclip reference, for an agent later asked to wire a custom runtime.
 
-The LLM-runtime adapters (`claude_local`, `codex_local`, `gemini_local`, and the rest) drive a real model and need that provider's API key. **These are what the crash course uses**: the CEO and its reports must reason, so they run on a model adapter (`claude_local` is Paperclip's default starting point). They generate the billable cost the budget scenario meters.
+The LLM-runtime adapters (`claude_local`, `codex_local`, `gemini_local`, and the rest) drive a real model. **These are what the crash course uses**: the CEO and its reports must reason, so they run on a model adapter (`claude_local`, the human's local Claude Code, is the default starting point). Verified live: they authenticate through the machine's own agent-CLI login, so no env key is required; and on those logins Paperclip records their tokens but at `cost_cents` 0, so the budget reads $0 (see Budgets).
 
 ### Hiring an agent: the CEO first (the verified create body)
 
@@ -317,24 +317,24 @@ Paperclip 2026.513.0 has no trigger-condition-action router. `/routing`, `/rules
 
 ### Create an issue and assign it (assignment must be at create-time)
 
-Assigning a Worker **at create-time** is what wires the issue into heartbeat orchestration:
+Assigning an agent **at create-time** is what wires the issue into heartbeat orchestration:
 
 ```bash
 paperclipai issue create -C <company-id> --project-id <project-id> \
-  --title "Refund request from C-4429" \
-  --description "Hi, the product arrived damaged..." \
-  --assignee-agent-id <worker-id>
+  --title "Draft issue 001 of the newsletter" \
+  --description "Write a first draft of the launch issue..." \
+  --assignee-agent-id <agent-id>
 ```
 
 A create-with-assignee issue is born at `todo` and the next heartbeat picks it up. Assigning an existing `backlog` issue via `issue update` does **not** trigger pickup. (Default status on a plain create with no assignee is `backlog`.) `issue create` accepts `-C/--company-id`; `issue update` does not (a CLI inconsistency). The issue identifier is `<PREFIX>-<N>`, e.g. `ACM-1`.
 
 ### Firing a heartbeat immediately
 
-`paperclipai heartbeat run -a <agent-id> --source assignment` fires a heartbeat now instead of waiting for the schedule. Useful for demos.
+`paperclipai heartbeat run -a <agent-id> --source manual` (or `--source assignment`) fires a heartbeat now instead of waiting for the schedule. Verified live: this is how you make the CEO produce its strategy without waiting out the interval.
 
 ### The lifecycle
 
-With a Worker that posts a disposition, an assigned issue goes `todo -> in_progress` (checked out: `startedAt` and `checkoutRunId` set) and then to `done` (`completedAt` set) once the Worker PATCHes a `done` disposition. A Worker that runs but never posts a disposition gets escalated to `blocked`. Atomic checkout means only one Worker can hold an issue at a time.
+With an agent that posts a disposition, an assigned issue goes `todo -> in_progress` (checked out: `startedAt` and `checkoutRunId` set) and then to `done` (`completedAt` set) once the agent PATCHes a `done` disposition. An agent that runs but never posts a disposition gets escalated to `blocked`. Atomic checkout means only one agent can hold an issue at a time.
 
 ## Approvals
 
