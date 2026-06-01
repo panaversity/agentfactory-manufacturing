@@ -111,10 +111,10 @@ When you cite a framing or a recommended default that comes from this file rathe
 Install Paperclip's own operator skills so you work from Paperclip's maintained knowledge, not just this brief. Run, in this folder:
 
 ```
-npx skills add https://github.com/paperclipai/paperclip --skill paperclip-create-agent diagnose-why-work-stopped --agent claude-code -y
+npx skills add https://github.com/paperclipai/paperclip --skill paperclip paperclip-create-agent paperclip-converting-plans-to-tasks diagnose-why-work-stopped --agent claude-code -y
 ```
 
-`paperclip-create-agent` is Paperclip's maintained hire flow (the authority on creating an agent, including the current mutate route); `diagnose-why-work-stopped` is its troubleshooting forensics. They install into `.claude/skills/` (which OpenCode reads too). Then have the human restart you so the skills load. (Verified 2026-05-28: this multi-skill `--skill` form installs both into `.claude/skills/`. If a later version changes the syntax, fall back to the per-skill tree URL `https://github.com/paperclipai/paperclip/tree/master/skills/<name>`, or to Paperclip's first-party `paperclipai agent local-cli`.)
+These are Paperclip's own maintained operator skills: **`paperclip`** (the general control-plane API: check assignments, update tasks, post comments, manage routines, call any endpoint), **`paperclip-create-agent`** (the hire flow, the authority on creating an agent and its mutate route), **`paperclip-converting-plans-to-tasks`** (how to turn an approved strategy into well-scoped, assigned tasks, which is exactly the CEO's Scenario 4 work), and **`diagnose-why-work-stopped`** (troubleshooting forensics). They install into `.claude/skills/`, which OpenCode reads too and which the CEO's own `claude_local` runtime also loads, so they sharpen both your driving and the CEO's working. Then have the human restart you so the skills load. (If a later version changes the `--skill` syntax, fall back to the per-skill tree URL `https://github.com/paperclipai/paperclip/tree/master/skills/<name>`, or to `paperclipai agent local-cli`.)
 
 ## Install and onboard
 
@@ -275,6 +275,10 @@ Field notes:
 Only `name` is strictly required; everything else has defaults (and a bare `{"name": "..."}` defaults `adapterType` to `process`).
 
 **Agents are mutable via the top-level route** `PATCH /api/agents/:agentId` (re-verified live on 2026.525.0): you can change `budgetMonthlyCents`, `adapterType`, and `adapterConfig` after creation, and each change is revisioned with rollback (`/api/agents/:agentId/config-revisions/.../rollback`); the activity log records `agent.updated`. The route is **top-level** (`/api/agents/:id`), NOT nested: `GET`/`PATCH` on `/api/companies/:id/agents/:agentId` returns 404, which earlier drafts mistook for 'agents are immutable.' There is still no agent DELETE, so an agent can be reconfigured but not removed; for a fully clean slate use a fresh `--data-dir`. Verify an agent via `GET /api/companies/:id/agents` (list) or `paperclipai agent get <id>`. `paperclipai agent list` needs `-C/--company-id`.
+
+### Execution workspaces (where agents do real work)
+
+When an agent does real work, writing a file, drafting content, editing a repo, it runs inside an **execution workspace**: a sandboxed checkout Paperclip realizes for that run. A project can declare runtime **services** (long-running commands) and **jobs** (one-shot commands) on its workspace config, which child runs inherit; these are controlled from the dashboard, not auto-started by a heartbeat. For this course no repo is connected, so each run uses the default agent-home workspace and the run log shows a line like `Using fallback workspace ...` (verified live: that is normal, not an error). To give agents a real codebase, connect a project workspace; see the live docs (Board Operator -> Execution Workspaces).
 
 ### The heartbeat contract (the `http` adapter, reference only)
 
