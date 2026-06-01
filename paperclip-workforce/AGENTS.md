@@ -41,17 +41,17 @@ A recurring rule across this brief: **Paperclip's CLI and API surface drifts, an
 
 Before any non-trivial operation, fetch the relevant live-doc section and confirm the current command shape with `--help`. The table maps intent to where to look.
 
-| If the human wants to...                  | Confirm via                                                                                                              |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Install Paperclip                         | `paperclip.ing/llms.txt`, then `npx paperclipai onboard --help`                                                          |
-| Run a second instance on the same machine | `paperclipai run --help` (note: no `--port` flag; port is set in `config.json`)                                          |
-| Hire the CEO (or any agent)               | the `paperclip-create-agent` skill first, then `paperclipai agent --help` (no `agent create` CLI; hire via the REST API) |
-| Make the CEO propose a strategy           | `paperclipai heartbeat run --help` (fires the heartbeat; the CEO files an `approve_ceo_strategy` approval)               |
-| Decide an approval (strategy, hire)       | `paperclipai approval --help`                                                                                            |
-| Direct a single task by hand              | `paperclipai issue create --help`                                                                                        |
-| Query the audit trail                     | `psql` into the embedded Postgres (connection string assembled from `config.json`)                                       |
-| Diagnose a problem                        | `paperclipai doctor` first, then the server logs                                                                         |
-| Tear down / start clean                   | use a fresh `--data-dir` (deletion is broken; see Safety rails)                                                          |
+| If the human wants to...                  | Confirm via                                                                                                                                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Install Paperclip                         | `paperclip.ing/llms.txt`, then `npx paperclipai onboard --help`                                                                                                                      |
+| Run a second instance on the same machine | `paperclipai run --help` (note: no `--port` flag; port is set in `config.json`)                                                                                                      |
+| Hire the CEO (or any agent)               | the `paperclip-create-agent` skill first, then `paperclipai agent --help` (no `agent create` CLI; hire via the REST API)                                                             |
+| Make the CEO propose a strategy           | needs a Goal entity + a CEO `capabilities` directive; `paperclipai heartbeat run` then writes the strategy as an issue moved to `in_review` (NOT an `approve_ceo_strategy` approval) |
+| Decide an approval (strategy, hire)       | `paperclipai approval --help`                                                                                                                                                        |
+| Direct a single task by hand              | `paperclipai issue create --help`                                                                                                                                                    |
+| Query the audit trail                     | `psql` into the embedded Postgres (connection string assembled from `config.json`)                                                                                                   |
+| Diagnose a problem                        | `paperclipai doctor` first, then the server logs                                                                                                                                     |
+| Tear down / start clean                   | use a fresh `--data-dir` (deletion is broken; see Safety rails)                                                                                                                      |
 
 If a `--help` listing or a doc path has clearly changed, surface it to the human and adjust.
 
@@ -218,7 +218,7 @@ The field is `description`, **not** `mission`. Unknown fields are silently dropp
 
 ### Goals and projects
 
-Optional structuring under a company: a goal has projects, a project has issues. For the crash course, one goal and one project. Goals take a `title`; projects take a `name`. Create them via the REST API the same way (`POST /api/companies/:id/goals`, `POST /api/companies/:id/projects`; confirm exact routes against the running API).
+**The company goal must be a Goal ENTITY, not the company `description` (verified live, 2026.529.0, the highest-impact gap in the course).** When you create the company in Scenario 1, also create a Goal: `POST /api/companies/:id/goals` with a `title` (the goal sentence). The CEO's runtime reads Goal entities; it does **not** read the company `description`. If the goal lives only in `description`, the CEO's first heartbeat finds "no goal," refuses to invent unassigned work, and exits cleanly, producing no strategy. That looks exactly like the invalid-model trap (a heartbeat that completes but does nothing) but the cause is different: no Goal entity. So in Scenario 1, always: create company, PATCH the approval gate, **and create the Goal entity**. A project is optional (issues do not require one; assigning at create-time is what triggers pickup), but the goal is not. Goals take a `title`; projects take a `name` (`POST /api/companies/:id/goals`, `POST /api/companies/:id/projects`; confirm routes against the running API).
 
 ## Agents and adapters
 
@@ -241,7 +241,11 @@ Use the `paperclip-create-agent` skill for the live hire flow; the field set bel
 
 There is no `paperclipai agent create` CLI command. Running `paperclipai agent create --help` does NOT error; it prints the `agent` parent help (which lists only `list`, `get`, `local-cli`) and exits 0. Always check that the subcommand you want actually appears in the listed set, not just that the command did not error.
 
-Hire via the REST API: `POST /api/companies/:id/agents`. The verified field set (every name below was confirmed against the live API; older AGENTS.md drafts had these wrong):
+**Two hire endpoints, and the gate decides which (verified live, 2026.529.0).** With the approval gate ON (which Scenario 1 arms), `POST /api/companies/:id/agents` is **blocked with 409**: `"Direct agent creation requires board approval. Use POST /api/companies/:companyId/agent-hires"`. This applies to the **CEO hire itself**, not only to the CEO hiring reports. So once the gate is on, every hire (CEO included) goes through `POST /api/companies/:id/agent-hires` with the same body below; it returns `{ "agent": {... "status": "pending_approval" ...}, "approval": {...} }` atomically. Then the human approves: `POST /api/approvals/:approvalId/approve` (or `paperclipai approval approve <id>`), which flips the agent to `idle`. `POST /api/companies/:id/agents` only works when the gate is OFF. Use `/agent-hires` whenever the gate is on (which, for this course, is always).
+
+**`capabilities` is load-bearing and must be set AT CREATION (verified live).** The CEO proposes a strategy on its first heartbeat ONLY because its `capabilities` string tells it to ("Reads the company goal, proposes a strategy for board approval, then creates and delegates tasks to its reports"). This text is baked into the CEO's instructions bundle at creation; a CEO created without it just reports "nothing assigned" and exits, and PATCHing `capabilities` afterwards does NOT fix it (the bundle is already generated). So put a strong, explicit `capabilities` directive in the create body. Combined with the Goal entity above, that is what makes Scenario 3 actually produce a strategy.
+
+Hire via the REST API. The field set below is verified; **submit it to `/agent-hires`** (gate on) or `/agents` (gate off):
 
 ```json
 {
@@ -257,10 +261,10 @@ Hire via the REST API: `POST /api/companies/:id/agents`. The verified field set 
   "budgetMonthlyCents": 500,
   "runtimeConfig": {
     "heartbeat": {
-      "enabled": true,
-      "intervalSeconds": 60,
+      "enabled": false,
+      "intervalSeconds": 300,
       "wakeOnAssignment": true,
-      "maxConcurrentRuns": 20
+      "maxConcurrentRuns": 1
     }
   }
 }
@@ -275,7 +279,7 @@ Field notes:
 - **`capabilities`** is a plain free-text string, not a structured object. There is no structured `authority_limits` field on agent-create; authority is described in prose here and enforced (where it is enforced at all) server-side.
 - **`permissions`** is an object (`{"canCreateAgents": bool}`), not a string array. The CEO needs `canCreateAgents: true` so it can file hire approvals; a worker agent stays `false`.
 - **`budgetMonthlyCents`** is a single integer in cents. There is no token/tool-call split.
-- **`runtimeConfig.heartbeat`** holds the schedule: `enabled`, `intervalSeconds`, `wakeOnAssignment`, `maxConcurrentRuns`.
+- **`runtimeConfig.heartbeat`** holds the schedule: `enabled`, `intervalSeconds`, `wakeOnAssignment`, `maxConcurrentRuns`. **Use `enabled: false` + `maxConcurrentRuns: 1` for the course (verified live, why it matters).** With an enabled 60s schedule and `maxConcurrentRuns` above 1, the moment you fire a manual heartbeat the scheduled beats pile on concurrently: in one run the CEO filed the SAME hire twice (a "CMO" and a "CMO 2", two identical `hire_agent` approvals) plus extra unasked agents, and each beat is a full model run burning real tokens (~$0.7-0.8 reference each, even though metered $0). The approval gate contains the damage (you just reject the duplicates) but it confuses a learner and sprawls the org. So: create agents with the heartbeat disabled, fire each beat manually with `paperclipai heartbeat run -a <id> --source manual` when you want the agent to act, and after you have what you need leave it disabled. `wakeOnAssignment: true` still lets an assigned task wake a report on demand.
 
 Only `name` is strictly required; everything else has defaults (and a bare `{"name": "..."}` defaults `adapterType` to `process`).
 
@@ -368,7 +372,7 @@ The decision flow: create -> `pending`; `paperclipai approval approve <id>` -> `
 
 **An approval is a decision record, not a state machine.** Approving a request does NOT automatically change the linked issue's status or execute the approved action. There is no "approval granted -> issue unblocked -> refund executed" wiring. Acting on an approved decision is a separate step. When you explain this to the human, be honest: the value of the approval flow is the _audited record of who decided what and why_, not an automated unblock.
 
-In the CEO course these are filed **organically by the CEO**, not by the human. On its first heartbeat the CEO files an `approve_ceo_strategy` approval (its strategic plan); when it wants to add a teammate it files a `hire_agent` approval (the proposed role, budget, and job). Both sit `pending` until the human decides them with `paperclipai approval approve <id>` (or `reject`, or request a revision and let the CEO resubmit). Nothing the approval covers proceeds until the human signs off; that gate is the human staying the board. (The human can also file `request_board_approval` directly to record an out-of-band decision.)
+In the CEO course these are filed **organically by the CEO**, not by the human. **Important (verified live, 2026.529.0): the CEO's STRATEGY does NOT arrive as an `approve_ceo_strategy` approval record.** On its first productive heartbeat the CEO writes its strategy as a task-board **issue with a `plan` document and moves that issue to `in_review`**, then posts a `request_confirmation` interaction on it (`wake_assignee`, so accepting it wakes the CEO to proceed). No `approve_ceo_strategy` row appears in the approvals list (that enum value exists but the current CEO runtime does not use it for strategy). The board "approves the strategy" by acting on that in-review issue: accept the `request_confirmation` (the clean path, which wakes the CEO), or move the issue out of `in_review` (e.g. to `done`) with a board comment. Either way the decision lands in `activity_log` as a `user`-actor `issue.updated`/`issue.comment_added` row, not an `approval.approved` row. HIRES are different: when the CEO wants a teammate it DOES file a real `hire_agent` approval (and, with the gate on, the CEO's own hire was a `hire_agent` approval too); decide those with `paperclipai approval approve <id>` / `POST /api/approvals/:id/approve` (or reject / request revision). So: strategy = an in-review issue you accept; hires = real `hire_agent` approvals you approve. (The human can also file `request_board_approval` directly to record an out-of-band decision.)
 
 ## Budgets
 
@@ -436,7 +440,7 @@ Doctor runs the same checks onboard runs internally. Most diagnostics start here
 1. **Port in use.** Another Paperclip (yours or a sibling project), or an unrelated service. Run the pre-install probe with the cwd-attribution step to disambiguate. Onboard auto-hops the port; for a deterministic second instance, edit `config.json` (see Configure).
 2. **Stale data directory.** A prior `<data-dir>/instances/default/` from an older version. Surface to the human; use `--data-dir <new-path>` for the new install and leave the old one untouched, or back it up and re-onboard.
 3. **Model auth.** All three local adapters use the machine's own CLI login, so **no env API key is required**: `claude_local` uses Claude Code, `codex_local` uses the `codex` CLI (ChatGPT login), `gemini_local` uses the `gemini` CLI login (an env `GEMINI_API_KEY`/`OPENAI_API_KEY` is an alternative, not a requirement). Verified live: `codex_local` and `gemini_local` both ran and completed work with no env key set. If a run errors, the transcript shows whether auth was the cause.
-4. **An agent runs but no strategy or tasks appear (verified live, the #1 trap).** The CEO heartbeats and the run reports completed, but no `approve_ceo_strategy` approval shows up. **Top cause: an invalid `model` id**, which makes the headless model run fail silently, so the run looks done but produced nothing. Do NOT conclude the flow is broken. Open the run transcript (`GET /api/heartbeat-runs/:runId/log`, or Agents -> CEO -> Runs in the dashboard) and read why. Fix: omit `model` to use the local default, or pass a current valid id; confirm any metered provider key is exported. After fixing, fire another heartbeat. The `diagnose-why-work-stopped` skill is built for exactly this.
+4. **The CEO heartbeats but produces no strategy (verified live, the #1 trap).** The run reports completed but the board is empty and the transcript says something like "no goal / nothing assigned, exiting cleanly." There are now THREE known causes, check in this order: **(a) No Goal entity** (most common): the goal is only in the company `description`, which the CEO does not read; create `POST /api/companies/:id/goals` and re-fire. **(b) No `capabilities` directive on the CEO**: a CEO created without the "read the goal, propose a strategy" capabilities string just waits for assigned work; this must be set at creation (PATCHing it later does not fix the already-generated bundle), so re-hire the CEO with capabilities. **(c) An invalid/stale `model` id**, which makes the headless run fail silently (omit `model` for `claude_local`; for `opencode_local` pass a valid id from the install). In all three the run looks "done" but did nothing. Do NOT conclude the flow is broken. Open the transcript (`GET /api/heartbeat-runs/:runId/log`, or Agents -> CEO -> Runs) and read which cause it is. The `diagnose-why-work-stopped` skill is built for exactly this. (Reminder from above: the strategy, once it works, appears as an issue moved to `in_review`, not an `approve_ceo_strategy` approval, so do not wait for an approval row that never comes.)
 5. **Onboard exits with an empty `db/` directory and no clear error.** A known initialization hiccup. Recovery: `rm -rf <data-dir>` and re-onboard. Do not try to repair the half-state.
 6. **Deletion 500s.** `company delete` is broken (un-cascaded FK). This is a Paperclip bug, not something you can fix. For a clean state, use a fresh `--data-dir`.
 
