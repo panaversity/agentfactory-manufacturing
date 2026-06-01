@@ -212,7 +212,7 @@ curl -X POST "$PAPERCLIP_API_URL/api/companies" \
   -d '{"name": "Northwind", "description": "Launch a weekly AI newsletter and reach 1,000 subscribers in 90 days.", "budgetMonthlyCents": 2000}'
 ```
 
-The field is `description`, **not** `mission`. Unknown fields are silently dropped (a wrong field name fails quietly, not loudly). The response includes the company `id` and an `issuePrefix` (e.g. `ACM`); capture both. Company-level budget is `budgetMonthlyCents` (an integer, in cents).
+The field is `description`, **not** `mission`. Unknown fields are silently dropped (a wrong field name fails quietly, not loudly). The response includes the company `id` and an `issuePrefix` (e.g. `ACM`); capture both. Company-level budget is `budgetMonthlyCents` (an integer, in cents). Set `requireBoardApprovalForNewAgents: true` at create time if the human wants to sign off on every hire: it defaults to **false**, and without it the CEO hires its reports **directly, with no `hire_agent` approval** (verified live). With it true, each hire becomes a board approval the human decides, the gate the course's Scenario 4 describes.
 
 ### Goals and projects
 
@@ -266,7 +266,7 @@ Field notes:
 
 - **`name`** is the role name. **`title`** is a separate optional display field.
 - **`role`** is a fixed enum: `ceo`, `cto`, `cmo`, `cfo`, `security`, `engineer`, `designer`, `pm`, `qa`, `devops`, `researcher`, `general`. The first agent is the `ceo`; its reports take the matching role (`engineer`, `designer`, ...) or `general`. Put the specific job in `capabilities` and `title`.
-- **`adapterType`** + **`adapterConfig`** (both camelCase). For an LLM adapter (`claude_local`, etc.) the exact `adapterConfig` (model id, any env) is **not frozen here**; get it from the `paperclip-create-agent` skill or the live API. For reference, `http` uses `{"url": "..."}` and `process` uses `{"command": "sh", "args": ["-c", "..."]}`.
+- **`adapterType`** + **`adapterConfig`** (both camelCase). For an LLM adapter (`claude_local`, etc.) the exact `adapterConfig` (model id, any env) is **not frozen here**; get it from the `paperclip-create-agent` skill or the live API. For reference, `http` uses `{"url": "..."}` and `process` uses `{"command": "sh", "args": ["-c", "..."]}`. **Verified live:** `claude_local` runs the machine's local Claude Code, so a Claude Code subscription needs no env API key; but the `model` id must be valid. An unrecognized id makes the headless run fail _silently_, producing no strategy (the run still reports completed). Safest: omit `model` and use the local default.
 - **`capabilities`** is a plain free-text string, not a structured object. There is no structured `authority_limits` field on agent-create; authority is described in prose here and enforced (where it is enforced at all) server-side.
 - **`permissions`** is an object (`{"canCreateAgents": bool}`), not a string array. The CEO needs `canCreateAgents: true` so it can file hire approvals; a worker agent stays `false`.
 - **`budgetMonthlyCents`** is a single integer in cents. There is no token/tool-call split.
@@ -361,9 +361,11 @@ In the CEO course these are filed **organically by the CEO**, not by the human. 
 
 ## Budgets
 
-Budget is set as `budgetMonthlyCents` at company and agent create time. There is a company ceiling and a per-agent cap, and either can pause an agent on its own. Because the CEO and its reports run on real model adapters, cost accrues from the start: per-run usage lands in the `heartbeat_runs.usage_json` column and aggregates into `spentMonthlyCents`. (There is no `cost_events` REST endpoint in 2026.513.0; `/cost-events`, `/costs`, `/usage` all 404. Read cost from the database, per the Audit-trail section.)
+Budget is set as `budgetMonthlyCents` at company and agent create time. There is a company ceiling and a per-agent cap, and either can pause an agent on its own. Per-run usage lands in the `heartbeat_runs.usage_json` column and aggregates into `spentMonthlyCents`. (There is no `cost_events` REST endpoint in 2026.513.0; `/cost-events`, `/costs`, `/usage` all 404. Read cost from the database, per the Audit-trail section.)
 
-Budget behaviour the human will see: at **80%** utilisation Paperclip warns; at **100%** the agent is **paused automatically** and no more heartbeats fire. To demonstrate it deliberately, lower one agent's `budgetMonthlyCents` to a dollar or two and pile on enough work to cross the cap. The pause is the safety net working, not a failure.
+**A budget only moves when the model run is metered (priced per token).** Verified live: an agent on `claude_local` backed by a Claude Code **subscription** records the tokens (a `cost_events` row with input/output tokens) but `cost_cents` is **0**, so `spentMonthlyCents` never climbs and the cap never trips. The rest of the course runs fine on that keyless subscription path, but the budget scenario specifically needs metered cost: hire a worker on a **metered, pay-per-token** adapter (`gemini_local` or `codex_local` with that provider's API key), give it a tiny `budgetMonthlyCents`, and pile on work.
+
+Budget behaviour the human will see (on a metered worker): at **80%** utilisation Paperclip warns; at **100%** the agent is **paused automatically** and no more heartbeats fire. The pause is the safety net working, not a failure.
 
 ## Audit trail
 
@@ -422,8 +424,8 @@ Doctor runs the same checks onboard runs internally. Most diagnostics start here
 
 1. **Port in use.** Another Paperclip (yours or a sibling project), or an unrelated service. Run the pre-install probe with the cwd-attribution step to disambiguate. Onboard auto-hops the port; for a deterministic second instance, edit `config.json` (see Configure).
 2. **Stale data directory.** A prior `<data-dir>/instances/default/` from an older version. Surface to the human; use `--data-dir <new-path>` for the new install and leave the old one untouched, or back it up and re-onboard.
-3. **No LLM API key.** A `claude_local`/`codex_local`/`gemini_local` agent heartbeats but fails because the provider key isn't in the environment. The activity log shows the failure. Fix: export the key, restart the adapter or server. This is the most common Scenario 2 and 3 failure, because the CEO needs its model to reason.
-4. **An agent runs but no strategy or tasks appear.** The CEO heartbeats but files no `approve_ceo_strategy` approval, or an approved strategy produces no tasks. Most common cause: the model key is missing or wrong, so the run fails before the model reasons. Check the activity log and the heartbeat run transcript (`paperclipai activity list`, plus the run record). Confirm the key is exported and the adapter and model are valid. The `diagnose-why-work-stopped` skill is built for exactly this.
+3. **Model auth.** `codex_local` and `gemini_local` need that provider's API key in the environment; `claude_local` instead drives the machine's local Claude Code CLI, so a Claude Code subscription needs **no env key at all**. If a run errors, the transcript shows whether auth was the cause.
+4. **An agent runs but no strategy or tasks appear (verified live, the #1 trap).** The CEO heartbeats and the run reports completed, but no `approve_ceo_strategy` approval shows up. **Top cause: an invalid `model` id**, which makes the headless model run fail silently, so the run looks done but produced nothing. Do NOT conclude the flow is broken. Open the run transcript (`GET /api/heartbeat-runs/:runId/log`, or Agents -> CEO -> Runs in the dashboard) and read why. Fix: omit `model` to use the local default, or pass a current valid id; confirm any metered provider key is exported. After fixing, fire another heartbeat. The `diagnose-why-work-stopped` skill is built for exactly this.
 5. **Onboard exits with an empty `db/` directory and no clear error.** A known initialization hiccup. Recovery: `rm -rf <data-dir>` and re-onboard. Do not try to repair the half-state.
 6. **Deletion 500s.** `company delete` is broken (un-cascaded FK). This is a Paperclip bug, not something you can fix. For a clean state, use a fresh `--data-dir`.
 
