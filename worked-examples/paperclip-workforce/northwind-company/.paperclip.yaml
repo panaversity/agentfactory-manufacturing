@@ -1,0 +1,148 @@
+schema: "paperclip/v1"
+agents:
+  ceo:
+    role: "ceo"
+    icon: "crown"
+    capabilities: "Reads the company goal, proposes a strategy for board approval, then creates and delegates tasks to its reports."
+    adapter:
+      config:
+        model: "openai/gpt-5.4-mini"
+      type: "opencode_local"
+    runtime:
+      heartbeat:
+        intervalSeconds: 300
+        maxConcurrentRuns: 1
+    permissions:
+      canCreateAgents: true
+    budgetMonthlyCents: 100
+  cmo:
+    role: "cmo"
+    icon: "mail"
+    capabilities: "Owns newsletter positioning, landing page copy, distribution plans, and growth experiments for Northwind."
+    adapter:
+      config:
+        model: "openai/gpt-5.4-mini"
+      type: "opencode_local"
+company:
+  attachmentMaxBytes: 10485760
+  requireBoardApprovalForNewAgents: true
+projects:
+  northwind-site:
+    color: "#6366f1"
+    status: "planned"
+sidebar:
+  agents:
+    - "ceo"
+    - "cmo"
+  projects:
+    - "northwind-site"
+tasks:
+  nor-1:
+    comments:
+      -
+        authorAgentSlug: "ceo"
+        authorType: "agent"
+        body: "## Update\n\nPosted the CEO strategy proposal for board review and attached the plan document.\n\n- Plan: [/NOR/issues/NOR-1#document-plan](/NOR/issues/NOR-1#document-plan)\n- Confirmation: `Approve newsletter strategy`\n- Next step after acceptance: delegate execution and hiring tasks\n\nPlease approve or request changes on the confirmation card."
+        createdAt: "2026-06-01T23:43:07.398Z"
+      -
+        authorAgentSlug: "ceo"
+        authorType: "agent"
+        body: "Status: awaiting board decision\n- Created request_confirmation `98926b72-e2f0-4886-9841-a6aab5925a44` on the latest plan revision.\n- Plan remains in `in_review` until acceptance.\n- No implementation subtasks were created yet; will delegate them after approval."
+        createdAt: "2026-06-01T23:45:10.102Z"
+      -
+        authorType: "user"
+        body: "Board sign-off: strategy approved as-is. The CEO is cleared to break the First Execution Slice into implementation tasks and to hire a marketing owner (which will come back to the board as a hire approval)."
+        createdAt: "2026-06-01T23:48:56.045Z"
+      -
+        authorAgentSlug: "ceo"
+        authorType: "agent"
+        body: "Status: board sign-off received, hire queued\n- CMO hire approval: [181c5f5a-4146-4660-8cd5-7dbd7ee05f77](/NOR/approvals/181c5f5a-4146-4660-8cd5-7dbd7ee05f77)\n- Once approved, I will break the first execution slice into child issues for positioning, landing page copy, issue topics, and the distribution checklist."
+        createdAt: "2026-06-01T23:52:18.866Z"
+      -
+        authorAgentSlug: "ceo"
+        authorType: "agent"
+        body: "Status: waiting on CMO hire approval `181c5f5a-4146-4660-8cd5-7dbd7ee05f77` before breaking the first execution slice into child issues. Strategy is approved; execution starts after the hire is approved."
+        createdAt: "2026-06-01T23:53:22.495Z"
+      -
+        authorAgentSlug: "ceo"
+        authorType: "agent"
+        body: "Status: strategy approved and execution delegated\n- Created CMO child issues NOR-2, NOR-3, NOR-4, and NOR-5 for the first execution slice.\n- CMO is now the owner of positioning, landing page copy, initial topics, and the distribution checklist.\n- Parent strategy work is complete; implementation continues in child issues."
+        createdAt: "2026-06-01T23:58:37.341Z"
+    identifier: "NOR-1"
+    priority: "high"
+    status: "done"
+  nor-2:
+    comments:
+      -
+        authorAgentSlug: "cmo"
+        authorType: "agent"
+        body: "## Update\n\nDrafted a sharp landing-page promise for Northwind weekly AI newsletter.\n\n- Hero headline: `AI you can use this week`\n- Subheadline: `One practical read each week on the AI tools, workflows, and decisions that help operators and builders move faster without the hype.`\n- CTA: `Get the weekly brief`\n- Signup helper: `No spam. One email every Friday. Unsubscribe anytime.`\n\nAlternate version for testing:\n\n- Hero headline: `The weekly AI brief for operators`\n- Subheadline: `Practical signals, short takes, and reusable workflows for people shipping with AI right now.`\n- CTA: `Subscribe free`\n- Signup helper: `A single email each week. Built for busy operators.`\n\nNext action: review against the reader definition in [NOR-3](/NOR/issues/NOR-3) and pick the stronger variant for launch."
+        createdAt: "2026-06-02T00:00:37.307Z"
+    identifier: "NOR-2"
+    priority: "high"
+    status: "done"
+  nor-3:
+    comments:
+      -
+        authorAgentSlug: "cmo"
+        authorType: "agent"
+        body: "## Update\n\nDefined a single primary reader and newsletter angle for Northwind.\n\n- Reader: B2B founders, product leads, and operators at small teams (roughly 10-200 people) who need to apply AI in real work, not just read about it.\n- Promise: **Northwind helps small B2B teams turn AI into practical weekly wins you can actually ship, use, or measure.**\n- Why this angle should win:\n  - It is specific enough to feel relevant and broad enough to keep a weekly editorial pipeline full.\n  - It maps to a real job-to-be-done: move from AI curiosity to concrete execution.\n  - It supports reusable content across the newsletter, landing page, and social distribution without changing the message.\n  - It avoids the crowded generic AI-news lane and the low-trust prompt-tip lane.\n  - It is easy to prove with examples, teardown-style issues, and short tactical takeaways.\n- What the newsletter is not: AI news roundup, prompt library, product launch gossip, or general tech commentary.\n\nNext action: use this reader/promise as the input for [NOR-2](/NOR/issues/NOR-2) landing page copy and [NOR-5](/NOR/issues/NOR-5) first issue topics."
+        createdAt: "2026-06-01T23:59:31.340Z"
+      -
+        authorAgentSlug: "cmo"
+        authorType: "agent"
+        body: "Done: defined the primary reader and newsletter angle for Northwind.\n\n- Reader: B2B founders, product leads, and operators at small teams who need practical AI execution, not more hype.\n- Promise: a weekly newsletter that turns AI into usable, measurable wins for small B2B teams.\n- Next: feed this into [NOR-2](/NOR/issues/NOR-2) and [NOR-5](/NOR/issues/NOR-5)."
+        createdAt: "2026-06-01T23:59:44.011Z"
+    identifier: "NOR-3"
+    priority: "high"
+    status: "done"
+  nor-4:
+    comments:
+      -
+        authorAgentSlug: "cmo"
+        authorType: "agent"
+        body: "## Done\n\nCreated the distribution checklist and saved it as an issue document.\n\n- Checklist: [/NOR/issues/NOR-4#document-checklist](/NOR/issues/NOR-4#document-checklist)\n- Covers pre-publish, publish-day, post-publish, reuse, and measurement\n- Next action: use this as the standard operating checklist for each weekly issue"
+        createdAt: "2026-06-02T00:00:01.015Z"
+    identifier: "NOR-4"
+    priority: "medium"
+    status: "done"
+  nor-5:
+    comments:
+      -
+        authorAgentSlug: "cmo"
+        authorType: "agent"
+        body: "## Update\n\nSet the first four newsletter topics for the practical AI operator angle.\n\n- 1. **Which AI workflows are worth automating first?** - establishes the newsletter's core promise: prioritization over hype.\n- 2. **How to run a 30-day AI pilot without wasting budget** - gives readers a concrete evaluation frame they can use immediately.\n- 3. **Turning one-off AI wins into team standards** - moves from experimentation to repeatable operating practice.\n- 4. **Where AI breaks in real teams, and how to spot it early** - adds credibility by naming failure modes and reducing surprise.\n\nPublish order: 1 -> 2 -> 3 -> 4.\n\nNotes:\n- No hard external dependencies for the first issue.\n- Issue 2 benefits from one internal example or interview snippet.\n- Issues 3 and 4 should pull in one practitioner quote or case note if available."
+        createdAt: "2026-06-01T23:59:43.979Z"
+    identifier: "NOR-5"
+    priority: "medium"
+    status: "done"
+  nor-6:
+    comments:
+      -
+        authorAgentSlug: "ceo"
+        authorType: "agent"
+        body: "## Update\n\nReviewed the first execution slice and moved the next slice into execution.\n\n- Ready: reader/promise in [NOR-3](/NOR/issues/NOR-3), landing-page copy in [NOR-2](/NOR/issues/NOR-2), distribution SOP in [NOR-4](/NOR/issues/NOR-4), and first-topic set in [NOR-5](/NOR/issues/NOR-5).\n- Gap: no final launch decision yet between the two landing-page variants, and no shipped issue/newsletter sample from the new angle.\n- Recommendation: shift from strategy to launch execution.\n- Delegated next slice: [NOR-7](/NOR/issues/NOR-7) to [CMO](/NOR/agents/cmo) for launch prep, first-issue drafting, distribution, and initial measurement.\n\nThis issue is complete as the board update; the execution follow-up is now owned separately."
+        createdAt: "2026-06-02T00:10:20.815Z"
+    identifier: "NOR-6"
+    priority: "high"
+    status: "done"
+  nor-7:
+    comments:
+      -
+        authorAgentSlug: "cmo"
+        authorType: "agent"
+        body: "## Update\n\nPrepared the launch package and created a confirmation path for publish approval.\n\n- Launch package: [/NOR/issues/NOR-7#document-launch-package](/NOR/issues/NOR-7#document-launch-package)\n- Review card: pending confirmation on this issue thread\n- Selected hero / CTA: **The weekly AI brief for operators** / **Subscribe free**\n- First issue draft covers the first four topics from [NOR-5](/NOR/issues/NOR-5) and matches the reader promise from [NOR-3](/NOR/issues/NOR-3).\n- Distribution checklist is aligned to [NOR-4](/NOR/issues/NOR-4).\n\nNext action: approve the launch package so I can publish externally, run the publish-day checklist, and report the first subscriber/result signal."
+        createdAt: "2026-06-02T00:12:15.739Z"
+    identifier: "NOR-7"
+    priority: "high"
+    status: "in_review"
+  nor-8:
+    comments:
+      -
+        authorAgentSlug: "cmo"
+        authorType: "agent"
+        body: "Done\n\n- Wrote `northwind-site/landing-page.html` as a standalone, inline-CSS landing page.\n- Included the approved hero headline, subheadline, CTA button, email field, and helper text.\n- Verified the file exists in the workspace."
+        createdAt: "2026-06-02T00:34:31.003Z"
+    identifier: "NOR-8"
+    priority: "high"
+    status: "done"

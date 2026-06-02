@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Northwind Newsletter</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --panel: rgba(255, 255, 255, 0.82);
+      --panel-border: rgba(15, 23, 42, 0.08);
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #2563eb;
+      --accent-2: #0f172a;
+      --shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.08), transparent 28%),
+        var(--bg);
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .hero {
+      width: min(100%, 1080px);
+      display: grid;
+      gap: 28px;
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: stretch;
+    }
+
+    .copy,
+    .card {
+      background: var(--panel);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--shadow);
+      border-radius: 28px;
+    }
+
+    .copy {
+      padding: clamp(28px, 4vw, 52px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 8vw, 5.75rem);
+      line-height: 0.94;
+      letter-spacing: -0.06em;
+      max-width: 9ch;
+    }
+
+    .subheadline {
+      margin: 20px 0 0;
+      max-width: 62ch;
+      font-size: clamp(1.05rem, 1.8vw, 1.24rem);
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .proof {
+      display: grid;
+      gap: 14px;
+      margin-top: auto;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .proof div {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .proof strong {
+      display: block;
+      font-size: 0.98rem;
+      margin-bottom: 6px;
+    }
+
+    .proof span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .card {
+      padding: clamp(24px, 4vw, 40px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.72));
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      width: 100%;
+      height: 56px;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 0 16px;
+      font: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .field:focus {
+      border-color: rgba(37, 99, 235, 0.6);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .button {
+      height: 56px;
+      border: 0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), #1d4ed8);
+      color: white;
+      font: inherit;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      box-shadow: 0 18px 30px rgba(37, 99, 235, 0.26);
+      transition: transform 150ms ease, box-shadow 150ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 22px 34px rgba(37, 99, 235, 0.28);
+    }
+
+    .helper {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      padding-top: 18px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      h1 { max-width: 10ch; }
+      .proof { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .page { padding: 16px; }
+      .copy, .card { border-radius: 22px; }
+      .meta { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero" aria-label="Northwind weekly newsletter signup">
+      <article class="copy">
+        <div>
+          <p class="eyebrow">Northwind Weekly AI Brief</p>
+          <h1>AI you can use this week</h1>
+          <p class="subheadline">One practical read each week on the AI tools, workflows, and decisions that help operators and builders move faster without the hype.</p>
+        </div>
+
+        <div class="proof" aria-label="Newsletter highlights">
+          <div>
+            <strong>Practical</strong>
+            <span>Short, actionable ideas you can test immediately.</span>
+          </div>
+          <div>
+            <strong>Operator-first</strong>
+            <span>Built for people making decisions, not chasing buzzwords.</span>
+          </div>
+          <div>
+            <strong>Weekly cadence</strong>
+            <span>One focused issue every Friday. Easy to keep up with.</span>
+          </div>
+        </div>
+      </article>
+
+      <aside class="card">
+        <h2>Get the weekly brief</h2>
+        <form class="form">
+          <input class="field" type="email" name="email" placeholder="Email address" aria-label="Email address" />
+          <button class="button" type="submit">Get the weekly brief</button>
+        </form>
+        <p class="helper">No spam. One email every Friday. Unsubscribe anytime.</p>
+        <div class="meta">
+          <span>Northwind</span>
+          <span>AI newsletter for operators and builders</span>
+        </div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "diagnose-why-work-stopped": {
+      "source": "paperclipai/paperclip",
+      "sourceType": "github",
+      "skillPath": "skills/diagnose-why-work-stopped/SKILL.md",
+      "computedHash": "d053b11ff5d84555dff87ca49746a3a0a279d6ad68f129284be845967a7bf9bf"
+    },
+    "paperclip": {
+      "source": "paperclipai/paperclip",
+      "sourceType": "github",
+      "skillPath": "skills/paperclip/SKILL.md",
+      "computedHash": "565fbf40881d35f90fa7cdd08fcd9e51481b2afe37af115bdde78dc2ec5c7800"
+    },
+    "paperclip-converting-plans-to-tasks": {
+      "source": "paperclipai/paperclip",
+      "sourceType": "github",
+      "skillPath": "skills/paperclip-converting-plans-to-tasks/SKILL.md",
+      "computedHash": "6e2923bed751203e7516907e5141644097e29c1c5e5116ac4699c377babc7a92"
+    },
+    "paperclip-create-agent": {
+      "source": "paperclipai/paperclip",
+      "sourceType": "github",
+      "skillPath": "skills/paperclip-create-agent/SKILL.md",
+      "computedHash": "9e42c3c4d8e56e8661aaec7821d643e4014157b60611ff0a2e5e539d32ac41be"
+    }
+  }
+}
