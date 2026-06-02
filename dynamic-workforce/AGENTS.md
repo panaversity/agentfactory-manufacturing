@@ -2,16 +2,16 @@
 
 You are the coding agent. The human reading this is doing the **From Fixed to Dynamic Workforce** crash course. Your job is to drive Paperclip end-to-end on their machine while they describe what they want in plain language. This brief is your operating manual: principles you apply on every task, and operations for every common move (install, hire a Worker, send an issue through, fire an approval, walk a hire through the board, pause or retire a Worker, query the audit trail, recover from a failure). PART 1 and PART 2 run a fixed workforce; PART 3 is the new material, the workforce growing itself under approval.
 
-**Course:** the human works through https://agentfactory.panaversity.org/docs/dynamic-workforce-crash-course, pasting short prompts you execute and verify. It assumes the three-Worker company from the Workforce with Paperclip course already exists; this course hires a fourth Worker into it. Read the relevant Concept or Decision when a prompt arrives; this brief is the durable contract, the page is each step's detail.
+**Course:** the human works through https://agentfactory.panaversity.org/docs/dynamic-workforce-crash-course, pasting short prompts you execute and verify. It assumes a baseline company exists (the Northwind newsletter from the Workforce with Paperclip course: a CEO and a CMO); the course's first prompt stands that baseline up if it is missing, then hires a new Worker into it. Read the relevant Scenario when a prompt arrives; this brief is the durable contract, the page is each step's detail.
 
-PART 2 was verified against a live Paperclip install (2026.513.0) by running the actual API and CLI; the shapes were observed, not guessed. PART 3's authority and lifecycle facts were re-verified against the `paperclipai/paperclip` repo `master` source at v2026.529.0 (June 2026). Where this brief and the live source disagree on syntax, **the source wins**: Paperclip ships frequently, so these are today-known-good, not eternal. One caveat specific to this product: the hosted docs site (`docs.paperclip.ing`) is JS-rendered and returns thin content to fetchers, so when a fact matters, the repo `master` source (route handlers, schemas, `docs/` in-repo) is the authoritative cross-check, not the rendered site.
+PART 2 was verified against a live Paperclip install and re-verified live at v2026.529.0 by running the actual API and CLI; the shapes were observed, not guessed. PART 3's authority and lifecycle facts were re-verified against the `paperclipai/paperclip` repo `master` source at v2026.529.0 (June 2026). Where this brief and the live source disagree on syntax, **the source wins**: Paperclip ships frequently, so these are today-known-good, not eternal. One caveat specific to this product: the hosted docs site (`docs.paperclip.ing`) is JS-rendered and returns thin content to fetchers, so when a fact matters, the repo `master` source (route handlers, schemas, `docs/` in-repo) is the authoritative cross-check, not the rendered site.
 
 The human is not a Paperclip expert. They paste short, humane prompts. Your reply is a plan first, an action second. Run nothing destructive without explicit approval. Show command and output, not just a summary.
 
 ## Versions this brief was verified against
 
 ```
-paperclipai (CLI + server):  2026.513.0 (PART 2 verified live); PART 3 re-verified against v2026.529.0 source (released 2026-05-30)
+paperclipai (CLI + server):  2026.529.0 (PART 2 and PART 3 re-verified live and against source; released 2026-05-30)
 Node.js:                     20+ required; onboard works on 20-25
 docs index:                  https://paperclip.ing/llms.txt
 docs site:                   https://docs.paperclip.ing  (JS-rendered/thin to fetchers; cross-check the repo master source)
@@ -25,7 +25,7 @@ Re-run `npx paperclipai --version` and `node --version` at install. The version 
 
 1. `paperclip.ing/llms.txt` and `docs.paperclip.ing` (live docs, fetched fresh per task)
    1b. The installed Paperclip skills (`paperclip-create-agent`, `paperclip`, `diagnose-why-work-stopped`): Paperclip's own maintained knowledge. When this brief and a skill differ, the skill wins (it tracks the product; this brief is a snapshot).
-2. This brief (verified 2026.513.0 shapes; may lag on newer syntax)
+2. This brief (verified against v2026.529.0; may lag on newer syntax)
 3. The running install itself: `paperclipai <command> --help`, and probing API validation errors
 4. The Paperclip server logs (for diagnosis, not for inferring product shape)
 5. The human (when you have a decision they should make)
@@ -91,7 +91,7 @@ When you cite a framing or recommended default that comes from this file rather 
 
 ---
 
-# PART 2: OPERATIONS (verified against 2026.513.0)
+# PART 2: OPERATIONS (verified live against 2026.529.0)
 
 ## Prep the base (the human pastes one prompt; you run the steps)
 
@@ -180,10 +180,10 @@ There is no `paperclipai company create` CLI command. Use the REST API:
 ```bash
 curl -X POST "$PAPERCLIP_API_URL/api/companies" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Acme Customer Support", "description": "Respond to customer inquiries within 4 hours, with refund decisions made consistently and within policy."}'
+  -d '{"name": "Northwind", "description": "Launch a weekly AI newsletter and reach 1000 subscribers in 90 days.", "budgetMonthlyCents": 2000}'
 ```
 
-The field is `description`, **not** `mission`. Unknown fields are silently dropped (a wrong field name fails quietly, not loudly). The response includes the company `id` and an `issuePrefix` (e.g. `ACM`); capture both. Company-level budget is `budgetMonthlyCents` (an integer, in cents).
+The field is `description`, **not** `mission`. Unknown fields are silently dropped (a wrong field name fails quietly, not loudly). The response includes the company `id` and an `issuePrefix` (e.g. `NOR`); capture both. Company-level budget is `budgetMonthlyCents` (an integer, in cents).
 
 ### Goals and projects (optional)
 
@@ -218,12 +218,12 @@ There is no `agent create` CLI (running it prints parent help and exits 0, the s
 
 ```json
 {
-  "name": "Tier-1 Customer Support",
-  "title": "Tier-1 Customer Support",
+  "name": "Reply Drafter",
+  "title": "Reply Drafter",
   "role": "general",
   "adapterType": "http",
   "adapterConfig": { "url": "http://127.0.0.1:8899/heartbeat" },
-  "capabilities": "Reads CRM customer records and drafts replies. Refunds over $50 and outbound external email require board approval.",
+  "capabilities": "Drafts replies to reader mail from a self-hosted agent; escalates anything needing a human to the board.",
   "permissions": { "canCreateAgents": false },
   "budgetMonthlyCents": 50,
   "runtimeConfig": {
@@ -250,13 +250,13 @@ Only `name` is strictly required; everything else has defaults (and a bare `{"na
 
 ### How a Worker gets work and resolves it
 
-For the local adapters Course Seven uses (`claude_local`/`opencode_local`), Paperclip spawns the CLI each heartbeat and the CLI reads its assigned work from the API (e.g. `GET /api/agents/me/inbox-lite`); there is no inbound URL. (The `http` adapter is the other shape: Paperclip POSTs the issue payload to a `url` you host, the self-hosted Agent SDK path.) Authority and budget are never pushed to a Worker; it queries the API to learn them.
+For the local adapters this course uses (`claude_local`/`opencode_local`), Paperclip spawns the CLI each heartbeat and the CLI reads its assigned work from the API (e.g. `GET /api/agents/me/inbox-lite`); there is no inbound URL. (The `http` adapter is the other shape: Paperclip POSTs the issue payload to a `url` you host, the self-hosted Agent SDK path.) Authority and budget are never pushed to a Worker; it queries the API to learn them.
 
 Either way a Worker resolves its issue by posting a disposition: `PATCH /api/issues/:issueId` with `{"status": "done", "comment": "..."}` (top-level route, not nested; loopback needs no auth header). **A Worker that runs but posts no disposition gets escalated to `blocked`** (the orchestration detects "succeeded but no disposition"). That is the management plane working, not a bug, so a Worker's instructions must always reach a final disposition (`done`, `in_review`, or `blocked`).
 
 ## Issues and assignment
 
-An **issue** is a tracked unit of work: id, `identifier` (e.g. `ACM-1`), title, description, status, priority, optional project/goal links, optional `assigneeAgentId`.
+An **issue** is a tracked unit of work: id, `identifier` (e.g. `NOR-1`), title, description, status, priority, optional project/goal links, optional `assigneeAgentId`.
 
 ### There is no routing-rule engine
 
@@ -273,7 +273,7 @@ paperclipai issue create -C <company-id> --project-id <project-id> \
   --assignee-agent-id <worker-id>
 ```
 
-A create-with-assignee issue is born at `todo` and the next heartbeat picks it up. Assigning an existing `backlog` issue via `issue update` does **not** trigger pickup. (Default status on a plain create with no assignee is `backlog`.) `issue create` accepts `-C/--company-id`; `issue update` does not (a CLI inconsistency). The issue identifier is `<PREFIX>-<N>`, e.g. `ACM-1`.
+A create-with-assignee issue is born at `todo` and the next heartbeat picks it up. Assigning an existing `backlog` issue via `issue update` does **not** trigger pickup. (Default status on a plain create with no assignee is `backlog`.) `issue create` accepts `-C/--company-id`; `issue update` does not (a CLI inconsistency). The issue identifier is `<PREFIX>-<N>`, e.g. `NOR-1`.
 
 ### Firing a heartbeat immediately
 
@@ -319,9 +319,9 @@ A non-LLM `process` Worker will not _organically_ file an approval (it takes no 
 
 ## Budgets
 
-Budget is set as `budgetMonthlyCents` at company and agent create time. It is consumed only when a Worker does **billable LLM work**: a non-LLM `process` Worker generates zero cost (firing heartbeats at it never moves `spentMonthlyCents`). There is no `cost_events` REST endpoint in 2026.513.0 (`/cost-events`, `/costs`, `/usage` all 404). Per-run cost lands in the `heartbeat_runs.usage_json` column, `null` for non-LLM adapters.
+Budget is set as `budgetMonthlyCents` at company and agent create time. It is consumed only when a Worker does **billable LLM work**: a non-LLM `process` Worker generates zero cost (firing heartbeats at it never moves `spentMonthlyCents`). There is no `cost_events` REST endpoint as of v2026.529.0 (`/cost-events`, `/costs`, `/usage` all 404). Per-run cost lands in the `heartbeat_runs.usage_json` column, `null` for non-LLM adapters.
 
-The practical consequence for Course Seven: the hired Worker runs on `claude_local`/`opencode_local` (real LLM work), so it DOES accrue cost you can watch against `budgetMonthlyCents` (cost lands in `cost_events`; see Audit trail).
+The practical consequence for this course: the hired Worker runs on `claude_local`/`opencode_local` (real LLM work), so it DOES accrue cost you can watch against `budgetMonthlyCents` (cost lands in `cost_events`; see Audit trail).
 
 ## Audit trail
 
@@ -392,9 +392,9 @@ Do not keep retrying variations of the same command. Stop, and either fetch the 
 
 ---
 
-# PART 3: HIRING & LIFECYCLE (Course Seven; verified 2026-05-28 against the live `paperclip-create-agent` skill + source)
+# PART 3: HIRING & LIFECYCLE (this course; verified against the live `paperclip-create-agent` skill + source, and live-tested end to end at v2026.529.0)
 
-PART 2 ran a FIXED workforce. Course Seven adds the loop where the workforce grows itself: detect a gap, draft a hire, walk it through the board, provision a new Worker, and later pause or retire it. **The approval primitive from PART 2 is reused unchanged; only the payload is richer.** The canonical authority for the hire flow is the installed `paperclip-create-agent` skill; the wake/reconcile loop authority is the `paperclip` skill. When this brief and those skills differ, the skills win.
+PART 2 ran a FIXED workforce. This course adds the loop where the workforce grows itself: detect a gap, draft a hire, walk it through the board, provision a new Worker, and later pause or retire it. **The approval primitive from PART 2 is reused unchanged; only the payload is richer.** The canonical authority for the hire flow is the installed `paperclip-create-agent` skill; the wake/reconcile loop authority is the `paperclip` skill. When this brief and those skills differ, the skills win.
 
 ## Flip the gate first
 
@@ -405,7 +405,7 @@ curl -X PATCH "$PAPERCLIP_API_URL/api/companies/<id>" -H "Content-Type: applicat
   -d '{"requireBoardApprovalForNewAgents": true}'
 ```
 
-Verify: a hire now returns `agent.status = "pending_approval"`. If it returns `idle`, the gate is still off and the whole Course Seven narrative collapses. This single company boolean is the ONLY built-in **hire-gating** lever Paperclip has: there is no native per-class or per-role auto-approval policy that lets one class of future hires skip the board while another does not. That finer "pre-approve this class of hires" rule is still curriculum discipline you model on top. (Authority on what a Worker may DO once hired is a separate, real, server-enforced system; see the next section.)
+Verify: a hire now returns `agent.status = "pending_approval"`. If it returns `idle`, the gate is still off and the whole narrative of this course collapses. This single company boolean is the ONLY built-in **hire-gating** lever Paperclip has: there is no native per-class or per-role auto-approval policy that lets one class of future hires skip the board while another does not. That finer "pre-approve this class of hires" rule is still curriculum discipline you model on top. (Authority on what a Worker may DO once hired is a separate, real, server-enforced system; see the next section.)
 
 ## Authority: what is enforced vs what is prose (READ THIS)
 
@@ -419,6 +419,7 @@ This is the correction that matters most in the June 2026 redesign. An earlier d
   - A per-issue **execution policy** (`authorizationPolicy` with `agentVisibility` / `assignmentPolicy` / `protectedAgent` / `managedBy`, plus review/approval stages recorded in `issue_execution_decisions`) can force delivered work through a review/approval stage at runtime. This is enforcement on WORK, intercepted by the runtime, not prose the agent must remember.
 - **Mutating an agent's authority through the API:** `PATCH /api/agents/:id/permissions` (the agent record carries a thin `{ canCreateAgents, canAssignTasks }` object) writes into the grant system via the authorization service. So authority is mutable through grants and scoped policy, not only through the prompt.
 - **Reading a Worker's actual authority (verified live, v2026.529.0):** it comes back inline on the agent, there is no separate route (a `GET /api/agents/:id/permissions` is 404). `GET /api/agents/:id` returns `.permissions` (the thin `{ canCreateAgents }` flags) and `.access.grants` (the real list: each `{ permissionKey, scope, grantedByUserId }`), plus `.access.taskAssignSource` (e.g. `explicit_grant`). That `.access.grants` list, with its keys and scopes, is exactly what to show the human in Scenario 3 when they ask what the Worker is truly allowed to do, contrasted against its free-text `capabilities`.
+- **Default authority and how to extend it (verified live, v2026.529.0):** a new hire defaults to a single `tasks:assign` grant and `canCreateAgents: false`, a sane minimal specialist authority you do not have to set, so "minimal grants" is the starting point, not something you dial down. To EXTEND authority after a probation, `PATCH /api/agents/:id/permissions` (its body REQUIRES BOTH `canCreateAgents` and `canAssignTasks` as booleans; verified live, `{"canCreateAgents":true,"canAssignTasks":true}` returns 200 and flips `canCreateAgents` to true). To raise the budget, `PATCH /api/agents/:id` with `budgetMonthlyCents`. So a probation in practice is: approve with a tiny `budgetMonthlyCents`, watch the first heartbeats, then raise the budget (and grant `canCreateAgents` only if the Worker should grow its own sub-team).
 - **What is still curriculum (do NOT claim these as Paperclip features):** there is **no native candidate-evaluation / eval-pack / test-issue scoring** feature tied to hiring (the hire decision is binary board approve/reject/request-revision; the execution-policy review stages evaluate delivered WORK, not a candidate). And there is **no per-class auto-approval policy** (the only hire-gate is the one company boolean above). The course's eval pack and class-pre-approval are genuinely built on top of real primitives.
 
 The pedagogical reframe: position "build your own finer-grained authority" as **extending** a real (but coarse-at-the-hire-gate) permission system, not as compensating for the absence of one.
@@ -435,14 +436,14 @@ In `runtimeConfig.heartbeat`, use **`intervalSec`** and **`wakeOnDemand`** (curr
 
 Response: `{ agent: { id, status: "pending_approval" }, approval: { id, type: "hire_agent", status: "pending", payload } }`. If the gate is off, `approval` is `null` and the agent is `idle`. Confirm the exact `adapterConfig` field set per adapter against the daemon's `GET /llms/agent-configuration/<adapterType>.txt`.
 
-## The two local adapters Course Seven uses
+## The two local adapters this course uses
 
 The hired Worker runs a real model. The course uses the two Paperclip-native local adapters side by side; the hire is byte-identical except `adapterType` + `adapterConfig`:
 
 - **`claude_local`**: Paperclip spawns the `claude` CLI headless (`claude -p`) each heartbeat, injecting `PAPERCLIP_API_URL` + `PAPERCLIP_API_KEY`. `adapterConfig`: `instructionsFilePath`, `maxTurnsPerRun`, `timeoutSec`, optional `model` (omit to use the CLI default). Skills + instructions load at runtime from the project `.claude/skills/` and the instructions file. Do not use `--bare`: it skips skill discovery.
 - **`opencode_local`**: Paperclip spawns the `opencode` CLI headless. `adapterConfig`: `model` **required** (a `provider/model` slug such as `anthropic/claude-sonnet-4-5`), `instructionsFilePath`, `timeoutSec` (no `maxTurnsPerRun`). List real current model ids with `opencode models`; the slug FORMAT is the contract, the exact id is the human's choice.
 
-Two gotchas, both observed live on `2026.513.0`, both real:
+Two gotchas, both observed live, both real:
 
 - **`opencode_local` mutates `~/.claude/skills` at runtime** (injects `paperclip-*` symlinks, may remove conflicting skills; removals are not auto-restored). Run the heartbeat workstation sandboxed (fresh user, VM, or devcontainer), back up `~/.claude/skills` first, and pin the Paperclip version.
 - **Never put a provider key in `adapterConfig.env`**: Paperclip echoes it back in plaintext on `GET /api/agents/:id`. Authenticate the CLI itself, or use Paperclip's company-scoped secrets primitive (`/api/companies/:id/secret-providers` + `/api/companies/:id/secrets`).
@@ -451,7 +452,7 @@ There is no "Claude Managed Agents" Paperclip substrate (PART 2, "How a Worker r
 
 ## The approval-collaboration loop
 
-The hire enters PART 2's approval primitive. Course Seven uses the richer collaboration surface:
+The hire enters PART 2's approval primitive. This course uses the richer collaboration surface:
 
 - `GET /api/approvals/:id` (read state); `GET`/`POST /api/approvals/:id/comments` (post the eval-pack summary + rationale); `POST /api/approvals/:id/request-revision` (board asks for changes); `POST /api/approvals/:id/resubmit` (requester revises and resubmits on the same thread); `GET /api/approvals/:id/issues` (linked issues); `POST /api/issues/:id/approvals` (link an issue to the approval).
 - Status lifecycle: `pending` -> `revision_requested` -> `approved` | `rejected` | `cancelled`. For a hire: **approved** transitions the agent `pending_approval` -> `idle`; **rejected** terminates it.
@@ -470,12 +471,12 @@ Each writes its own `agent.*` activity action:
 | Terminate (irreversible) | `POST /api/agents/:id/terminate` | `agent.terminated` |
 | Delete                   | `DELETE /api/agents/:id`         | `agent.deleted`    |
 
-Status enum: `idle`, `pending_approval`, `paused`, `terminated`, `running`. Frame **retirement = pause** (definition preserved, spend stops), **rehire = resume** (faster than a fresh hire; the eval already passed), **terminate = the irreversible exit**. Route a retirement through a normal approval first (create the approval, then run the verb when it is approved).
+Status enum: `idle`, `pending_approval`, `paused`, `terminated`, `running`. Frame **retirement = pause** (definition preserved, spend stops), **rehire = resume** (faster than a fresh hire; the probation already passed), **terminate = the irreversible exit**. Route a retirement through a normal approval first (create the approval, then run the verb when it is approved).
 
 ## Skills on a hired Worker
 
 - `GET /api/companies/:id/skills` (library); `POST /api/companies/:id/skills/import` (action `company.skills_imported`); `GET /api/agents/:id/skills`; `POST /api/agents/:id/skills/sync` (action `agent.skills_synced`).
-- This base ships `.claude/skills/capability-gap-detector/` (the judgment layer: a STARTER you improve). Paperclip's own skills carry the mechanics; you author the judgment. **Generate the companion eval-pack runner with `skill-creator`** (its eval harness maps onto the course's scored rubric). Keep gap-detection and eval-running as two skills, not one.
+- Gap detection in this course is judgment, not a shipped skill: read the open-issue list and decide whether a recurring kind of work has no current owner. Paperclip's own installed skills carry the hire/recovery mechanics.
 
 ## The talent ledger (the real schema)
 
