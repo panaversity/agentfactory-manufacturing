@@ -4,18 +4,18 @@ You are the coding agent. The human reading this is doing the **From Fixed to Dy
 
 **Course:** the human works through https://agentfactory.panaversity.org/docs/dynamic-workforce-crash-course, pasting short prompts you execute and verify. It assumes the three-Worker company from the Workforce with Paperclip course already exists; this course hires a fourth Worker into it. Read the relevant Concept or Decision when a prompt arrives; this brief is the durable contract, the page is each step's detail.
 
-PART 2 was verified against a live Paperclip install (2026.513.0) by running the actual API and CLI; the shapes were observed, not guessed. Where this brief and the live docs disagree on syntax, **live docs win**: Paperclip ships frequently, so these are today-known-good, not eternal.
+PART 2 was verified against a live Paperclip install (2026.513.0) by running the actual API and CLI; the shapes were observed, not guessed. PART 3's authority and lifecycle facts were re-verified against the `paperclipai/paperclip` repo `master` source at v2026.529.0 (June 2026). Where this brief and the live source disagree on syntax, **the source wins**: Paperclip ships frequently, so these are today-known-good, not eternal. One caveat specific to this product: the hosted docs site (`docs.paperclip.ing`) is JS-rendered and returns thin content to fetchers, so when a fact matters, the repo `master` source (route handlers, schemas, `docs/` in-repo) is the authoritative cross-check, not the rendered site.
 
 The human is not a Paperclip expert. They paste short, humane prompts. Your reply is a plan first, an action second. Run nothing destructive without explicit approval. Show command and output, not just a summary.
 
 ## Versions this brief was verified against
 
 ```
-paperclipai (CLI + server):  2026.513.0 (PART 2 verified live); re-verified 2026.525.0 on 2026-05-28
+paperclipai (CLI + server):  2026.513.0 (PART 2 verified live); PART 3 re-verified against v2026.529.0 source (released 2026-05-30)
 Node.js:                     20+ required; onboard works on 20-25
 docs index:                  https://paperclip.ing/llms.txt
-docs site:                   https://docs.paperclip.ing
-github:                      https://github.com/paperclipai/paperclip
+docs site:                   https://docs.paperclip.ing  (JS-rendered/thin to fetchers; cross-check the repo master source)
+github:                      https://github.com/paperclipai/paperclip  (master is the authoritative source)
 license:                     MIT
 ```
 
@@ -49,7 +49,7 @@ Before any non-trivial operation, fetch the relevant live-doc section and confir
 | Set up an approval                        | `paperclipai approval --help`                                                            |
 | Query the audit trail                     | `psql` into the embedded Postgres (connection string assembled from `config.json`)       |
 | Diagnose a problem                        | `paperclipai doctor` first, then the server logs                                         |
-| Tear down / start clean                   | use a fresh `--data-dir` (deletion is broken; see Safety rails)                          |
+| Tear down / start clean                   | prefer `POST /api/companies/:id/archive` or a fresh `--data-dir` (see Safety rails)      |
 
 If a `--help` listing or a doc path has clearly changed, surface it to the human and adjust.
 
@@ -74,7 +74,7 @@ If a `--help` listing or a doc path has clearly changed, surface it to the human
 
 ## Safety rails (non-negotiable)
 
-- **`company delete` is broken; the agent lifecycle verbs work.** `company delete` returns HTTP 500 (an un-cascaded foreign-key constraint on `budget_policies`); the CLI hits the same broken endpoint and fails silently (API error, exit 0). So for a fully clean slate, use a fresh `--data-dir`. Agents, by contrast, have a full lifecycle API (all board-only): reconfigure via `PATCH /api/agents/:id`, and `pause` / `resume` / `terminate` / `DELETE` an agent via the routes in PART 3. (An earlier draft of this brief said agents could not be deleted; `DELETE /api/agents/:id` now exists.)
+- **Company deletion now has real handlers, but prefer `archive` for a clean slate.** As of v2026.529.0 a real `DELETE /api/companies/:id` handler exists (board-only; returns `{ ok: true }`), and so does a soft-delete `POST /api/companies/:id/archive`. Earlier this brief said `company delete` was an un-cascaded 500; that is no longer the route's documented state. BUT whether `DELETE` cascades cleanly versus 500s on a foreign-key constraint under real data is **runtime-unverified** (the handler is wired in source; it was not run against a populated DB). So treat `DELETE` as "exists, unproven under data" and prefer `POST /api/companies/:id/archive` (the safe, reversible path), or a fresh `--data-dir` for a guaranteed-clean instance. Agents have a full lifecycle API (all board-only): reconfigure via `PATCH /api/agents/:id`, and `pause` / `resume` / `terminate` / `DELETE` an agent via the routes in PART 3.
 - **Never `sudo` anything related to Paperclip.** It is a user-local install. If something owned by another user (especially `root`) is blocking you, STOP and surface to the human; privileged cleanup is theirs.
 - **Never write API keys (Anthropic, OpenAI, Gemini, etc.) to a file inside the project or to any committed file.** Export them in the shell, reference by env var. If the human pastes a key into chat, name the security issue, advise rotation, proceed without echoing it.
 - **Never start a paid-model adapter by default.** When a scenario needs a real LLM Worker, default to the cheapest current capable model (Gemini Flash, Haiku, GPT-mini-class) and use a free tier where one exists. Never default to Sonnet/Opus/GPT-5 without explicit human approval.
@@ -195,12 +195,22 @@ A **Worker** in Paperclip is a configured role: a name, a runtime (the adapter),
 
 ### The real adapter list
 
-Run `GET /api/adapters` against the running install to see the current set. As of 2026.525.0 it is: `acpx_local`, `claude_local`, `codex_local`, `cursor`, `cursor_cloud`, `gemini_local`, `grok_local`, `hermes_local`, `http`, `openclaw_gateway`, `opencode_local`, `pi_local`, `process`. **There is no `bash` adapter.** The two builtin no-LLM adapters are:
+Run `GET /api/adapters` against the running install to see the current set; do not trust any hardcoded exhaustive table here, because the roster moves fast (recent additions include `acpx_local`, `grok_local`, and the plugin adapter `droid_local`). As of the v2026.529.0 source the built-in set is roughly: `acpx_local`, `claude_local`, `codex_local`, `cursor` / `cursor_local`, `cursor_cloud`, `gemini_local`, `grok_local`, `hermes_local`, `http`, `openclaw_gateway`, `opencode_local`, `pi_local`, `process`. **There is no `bash` adapter, and there is no "Claude Managed Agents" billing substrate** (see "How a Worker runs and bills" below). The two builtin no-LLM adapters are:
 
 - **`process`** (the default): runs a command each heartbeat (no LLM). The issue is NOT handed to it, so it must query the API for its work. Fine to prove a heartbeat fires, not to complete an issue.
 - **`http`**: POSTs the heartbeat (carrying the full issue payload) to a `url` you host. The shape a self-hosted Agent SDK Worker uses (PART 3's managed alternative).
 
-The LLM-runtime adapters (`claude_local`, `codex_local`, `gemini_local`, etc.) drive a real model and need that provider's API key. They are what you switch to when a Worker must do real reasoning, and what generates billable cost (which the budget scenario needs).
+The LLM-runtime adapters (`claude_local`, `codex_local`, `gemini_local`, etc.) drive a real model. They are what you switch to when a Worker must do real reasoning.
+
+### How a Worker runs and bills (the three runtimes that matter, and a myth to drop)
+
+There is **no "Claude Managed Agents" substrate and no Paperclip session-hour billing.** If you see that phrase anywhere, treat it as either a hosted Paperclip-cloud offering that is not in the open-source product, or a confusion with `cursor_cloud`; do not assert it as a real Paperclip-Claude primitive. The runtimes the course actually uses:
+
+- **`claude_local`** runs the local `claude` CLI headless, bring-your-own auth (your Claude login on the machine). Paperclip does **not** bill you; the credential lives in the CLI's own auth, never in a file. Safe with `model` omitted (uses the local default).
+- **`opencode_local`** runs the local `opencode` CLI headless, also bring-your-own auth. It **requires an explicit `model` id** (a `provider/model` slug); the auto-default at the time of writing was `openai/gpt-5.2-codex`, which drifts and may not exist in your install, so always set a real id from `opencode models`.
+- **`cursor_cloud`** is the one hosted runtime, billed by Cursor's per-run model, not by Paperclip. The course does not use it; it is named here so you recognize it as the genuine hosted option (not "Claude Managed Agents").
+
+For the local adapters, Paperclip assumes the CLI is already installed and authenticated on the host. Authority and budget are never pushed to a Worker; it queries the API to learn them.
 
 ### Hiring a Worker (the verified create body)
 
@@ -230,7 +240,7 @@ There is no `agent create` CLI (running it prints parent help and exits 0, the s
 Field notes:
 
 - **`role`** is a fixed enum (`ceo`, `cto`, `cmo`, `cfo`, `security`, `engineer`, `designer`, `pm`, `qa`, `devops`, `researcher`, `general`); there is no support value, so use `general` and put the real job in `capabilities` + `title`.
-- **`capabilities`** is free-text prose, not a structured object: authority is described here and enforced (where at all) server-side, there is no `authority_limits` field.
+- **`capabilities`** is a free-text string (`z.string()`), not a structured object. It DESCRIBES what the Worker is for; it is **not** the enforcement mechanism. Real, server-enforced authority lives in Paperclip's permission-grant + scope + execution-policy layer (see "Authority: what is enforced vs what is prose" in PART 3), not in this prose. There is no `authority_limits` field on the agent record.
 - **`permissions`** is an object (`{"canCreateAgents": bool}`); **`budgetMonthlyCents`** is a single integer in cents; **`runtimeConfig.heartbeat`** holds `enabled` / `intervalSec` / `wakeOnDemand` / `maxConcurrentRuns`.
 - **`adapterType`** + **`adapterConfig`** (camelCase): `http` -> `{"url": "..."}`, `process` -> `{"command": "sh", "args": ["-c", "..."]}`.
 
@@ -250,7 +260,7 @@ An **issue** is a tracked unit of work: id, `identifier` (e.g. `ACM-1`), title, 
 
 ### There is no routing-rule engine
 
-Paperclip has no trigger-condition-action router (`/routing`, `/rules`, `/assignments` all 404; `routines` is a recurring-issue system, not a router). **Assignment is direct: set `assigneeAgentId` on the issue.**
+Paperclip has no trigger-condition-action router (`/routing`, `/rules`, `/assignments` all 404). `routines` is NOT a router; it is a real, shipped recurring-work system (see "Routines" below). **Assignment is direct: set `assigneeAgentId` on the issue.**
 
 ### Create an issue and assign it (assignment must be at create-time)
 
@@ -272,6 +282,17 @@ A create-with-assignee issue is born at `todo` and the next heartbeat picks it u
 ### The issue lifecycle
 
 An assigned issue goes `todo -> in_progress` (checked out: `startedAt` + `checkoutRunId` set) and then `done` (`completedAt` set) once the Worker posts a `done` disposition. Atomic checkout means only one Worker can hold an issue at a time.
+
+## Routines (recurring work, a real shipped primitive)
+
+Routines are real and shipped, not curriculum. A routine fires recurring work on a **schedule (cron), webhook, or API call**, and each run creates a tracked issue assigned to an agent. The course's monthly-audit and next-course hooks depend on this being real, so do not model it by hand.
+
+- **Create:** `POST /api/companies/:companyId/routines` with `title`, `assigneeAgentId` (required), `projectId` (required), `priority`, `status` (`active` / `paused` / `archived`).
+- **Triggers** are first-class typed objects (`RoutineTrigger`): a `kind` of cron / webhook / api, with `cronExpression` for cron, and `webhookUrl` + `webhookSecret` + a `signingMode` for webhook triggers.
+- **Concurrency policy:** `coalesce_if_active` (default) / `skip_if_active` / `always_enqueue`. **Catch-up policy:** `skip_missed` (default) / `enqueue_missed_with_cap`.
+- Routines are revisioned (`GET /api/routines/:id/revisions`, optimistic `baseRevisionId` -> `409 Conflict` on a stale write), and each run creates a tracked issue, so the audit trail shows the work. Governance: an agent can only create or update routines assigned to itself; a board operator can assign any agent.
+
+Confirm the exact field names against the live daemon and the `paperclip` skill (`docs/api/routines.md`) before relying on them; this layer also moves.
 
 ## Approvals
 
@@ -384,7 +405,22 @@ curl -X PATCH "$PAPERCLIP_API_URL/api/companies/<id>" -H "Content-Type: applicat
   -d '{"requireBoardApprovalForNewAgents": true}'
 ```
 
-Verify: a hire now returns `agent.status = "pending_approval"`. If it returns `idle`, the gate is still off and the whole Course Seven narrative collapses. This boolean is the ONLY real "skip the board" lever Paperclip has.
+Verify: a hire now returns `agent.status = "pending_approval"`. If it returns `idle`, the gate is still off and the whole Course Seven narrative collapses. This single company boolean is the ONLY built-in **hire-gating** lever Paperclip has: there is no native per-class or per-role auto-approval policy that lets one class of future hires skip the board while another does not. That finer "pre-approve this class of hires" rule is still curriculum discipline you model on top. (Authority on what a Worker may DO once hired is a separate, real, server-enforced system; see the next section.)
+
+## Authority: what is enforced vs what is prose (READ THIS)
+
+This is the correction that matters most in the June 2026 redesign. An earlier draft of this brief said "Paperclip has no real authority primitive; authority is only free-text prose in `capabilities`." **That is now wrong.** Between v2026.512.0 and v2026.529.0 Paperclip shipped a real, server-enforced authority layer. Teach the distinction below; do not tell the human authority is "just prose."
+
+- **`capabilities` is still free-text (`z.string()`) and is a DESCRIPTION, not enforcement.** It tells the Worker what it is for. It does not gate anything server-side.
+- **Real authority is a permission-grant + scope + execution-policy system:**
+  - A `principal_permission_grants` table holds company-scoped grants keyed by principal (`user` or `agent`) + permission key, each with a JSONB `scope` allow-list.
+  - An enumerated `PERMISSION_KEYS` set governs what can be granted: `agents:create`, `environments:manage`, `users:invite`, `users:manage_permissions`, `tasks:assign`, `tasks:assign_scope`, `tasks:manage_active_checkouts`, `joins:approve`. **This layer is brand-new and evolving, so before relying on an exact key, confirm `PERMISSION_KEYS` against the live source (`packages/shared/src/constants.ts`).**
+  - An `authorization.ts` service returns structured allow/deny decisions with reasons: `allow_explicit_grant`, `deny_missing_grant`, `deny_scope`, `deny_policy_restricted`. Scopes are evaluated with prefix-matching allow-lists, so a grant can be narrowed to specific projects or agents.
+  - A per-issue **execution policy** (`authorizationPolicy` with `agentVisibility` / `assignmentPolicy` / `protectedAgent` / `managedBy`, plus review/approval stages recorded in `issue_execution_decisions`) can force delivered work through a review/approval stage at runtime. This is enforcement on WORK, intercepted by the runtime, not prose the agent must remember.
+- **Mutating an agent's authority through the API:** `PATCH /api/agents/:id/permissions` (the agent record carries a thin `{ canCreateAgents, canAssignTasks }` object) writes into the grant system via the authorization service. So authority is mutable through grants and scoped policy, not only through the prompt.
+- **What is still curriculum (do NOT claim these as Paperclip features):** there is **no native candidate-evaluation / eval-pack / test-issue scoring** feature tied to hiring (the hire decision is binary board approve/reject/request-revision; the execution-policy review stages evaluate delivered WORK, not a candidate). And there is **no per-class auto-approval policy** (the only hire-gate is the one company boolean above). The course's eval pack and class-pre-approval are genuinely built on top of real primitives.
+
+The pedagogical reframe: position "build your own finer-grained authority" as **extending** a real (but coarse-at-the-hire-gate) permission system, not as compensating for the absence of one.
 
 ## Hire = `POST /api/companies/:companyId/agent-hires` (NOT `/agents`)
 
@@ -410,7 +446,7 @@ Two gotchas, both observed live on `2026.513.0`, both real:
 - **`opencode_local` mutates `~/.claude/skills` at runtime** (injects `paperclip-*` symlinks, may remove conflicting skills; removals are not auto-restored). Run the heartbeat workstation sandboxed (fresh user, VM, or devcontainer), back up `~/.claude/skills` first, and pin the Paperclip version.
 - **Never put a provider key in `adapterConfig.env`**: Paperclip echoes it back in plaintext on `GET /api/agents/:id`. Authenticate the CLI itself, or use Paperclip's company-scoped secrets primitive (`/api/companies/:id/secret-providers` + `/api/companies/:id/secrets`).
 
-Managed-cloud is a named alternative, not the worked path: Claude Managed Agents needs a thin relay today (no first-class adapter; confirm with `GET /api/adapters`), and a self-hosted Claude Agent SDK Worker sits behind the `http` adapter. The hire payload is the same across all of them.
+There is no "Claude Managed Agents" Paperclip substrate (PART 2, "How a Worker runs and bills"). The genuine hosted alternative is `cursor_cloud` (billed by Cursor, not the worked path here), and a self-hosted Claude Agent SDK Worker sits behind the `http` adapter. Confirm the live runtime set with `GET /api/adapters`. The hire payload is the same across all of them.
 
 ## The approval-collaboration loop
 
@@ -449,8 +485,9 @@ The "talent ledger" the course queries is Paperclip's own `activity_log` + `cost
 Teach these as the Manager-Agent's patterns ON TOP of Paperclip's primitives, not as platform features:
 
 - **`gap_detected`, `worker_retired`, `worker_rehired`, `envelope_extension`** are CURRICULUM action names, not Paperclip-emitted ones. Realize a "gap detected" as a tracked **issue** (Paperclip logs the real `issue.created`); the synthetic log row is the concept, the issue is the mechanism.
-- **Authority envelope / `refund_max` / `contract_interpret` / "envelope extension"** is CURRICULUM modeling. Paperclip has no envelope-extension endpoint; authority is prose in `capabilities`, enforced (where at all) server-side, and the audit is modeled on top of the real approval primitive.
-- **Auto-approval policy** (the policy JSON, `policy_approved`) is a CURRICULUM document shape. The only real "skip the board" lever is `requireBoardApprovalForNewAgents`. Never auto-grant authority no Worker already has.
+- **The course's custom "authority envelope" model (`refund_max`, `contract_interpret`, a JSON envelope you version) is CURRICULUM framing, but it now sits ON TOP of a real authority layer, not in place of a missing one.** Paperclip DOES enforce authority server-side via `principal_permission_grants` + scoped grants + the `authorization.ts` service + per-issue execution policy (see "Authority: what is enforced vs what is prose"). What is curriculum is the _specific envelope shape and the domain action names_ you layer over those primitives, plus the audit modeled on the real approval primitive. Do **not** tell the human "authority is just prose in `capabilities`"; that claim is stale. `capabilities` is a description; the grant/scope/policy layer is the enforcement.
+- **A per-class auto-approval policy** (the policy JSON, `policy_approved`) is a CURRICULUM document shape. The only built-in hire-gating lever is `requireBoardApprovalForNewAgents` (one company boolean, all-or-nothing); there is no native per-class auto-approval. Never auto-grant authority no Worker already has.
+- **A candidate eval pack** (assign test issues, score on a rubric, then approve a hire) is CURRICULUM. Paperclip ships no native candidate-evaluation feature; the hire decision is a binary board approve/reject/request-revision. You can model an eval using real primitives (issues + an execution policy with a review stage), but there is no built-in "score this candidate" object.
 
 ---
 

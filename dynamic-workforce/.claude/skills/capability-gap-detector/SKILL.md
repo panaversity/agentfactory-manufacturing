@@ -65,4 +65,4 @@ This file is the asset you own and grow, exactly as the crash course teaches. Co
 - **Tune the thresholds** (`3` issues, `0.6` confidence, `14` days) to your real traffic, and record why.
 - **Add categories** your router cannot yet classify.
 - **Generate the companion eval-pack runner with `skill-creator`** (its eval harness maps directly onto the course's scored rubric). Gap detection finds the need; the eval pack proves a candidate before the board sees it. Keep them as two skills, not one.
-- **Pin versions.** This skill was written against Paperclip `2026.525.0`-era shapes. When you bump Paperclip, re-confirm the `activity_log` schema and the issue-create shape, and update the version note here.
+- **Pin versions.** This skill was written against Paperclip `2026.529.0`-era shapes (the `activity_log` schema below: cost is `cost_cents`, there is no `issue_id` column, and curriculum fields live in the `details` JSON). When you bump Paperclip, re-confirm the `activity_log` schema and the issue-create shape, and update the version note here.

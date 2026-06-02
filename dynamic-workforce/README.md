@@ -6,7 +6,7 @@ Open this folder in your coding agent (Claude Code or OpenCode) and follow the c
 
 What is here:
 
-- `AGENTS.md` carries the standing operations brief (verified against a live install). Beyond the management plane it now covers the **hiring lifecycle**: the `agent-hires` endpoint, the approval-collaboration loop, the real Worker lifecycle verbs (pause, resume, terminate), and the talent-ledger queries. `CLAUDE.md` loads it when your agent opens the folder.
+- `AGENTS.md` carries the standing operations brief (PART 2 verified against a live install; PART 3 re-verified against the Paperclip `master` source at v2026.529.0). Beyond the management plane it covers the **hiring lifecycle**: the `agent-hires` endpoint, the approval-collaboration loop, the real Worker lifecycle verbs (pause, resume, terminate, delete), Paperclip's real **authority layer** (permission grants, scopes, and per-issue execution policy, not just free-text `capabilities`), routines for recurring work, and the talent-ledger queries. `CLAUDE.md` loads it when your agent opens the folder.
 - `.claude/skills/capability-gap-detector/` is the one **building skill** this base ships: the judgment layer that notices when no current Worker can handle the work and recommends hire vs escalate vs queue vs decline. It is a **starter you improve**, not a finished tool. Paperclip's own skills carry the mechanics; this carries the judgment.
 - `.env.example` documents the optional provider key, which you export in your shell, never store here.
 
