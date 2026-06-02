@@ -89,11 +89,11 @@ The envelope lives at `~/.openclaw/governance/delegated-envelope.json` (owner-ed
   "auto_resolve": [
     {
       "type": "refund",
-      "max_amount_cents": 20000,
+      "max_amount_cents": 200000,
       "require": { "prior_refunds_6mo_max": 0, "min_account_age_days": 180 },
       "action": "approve"
     },
-    { "type": "budget_override", "max_overage_pct": 15, "action": "approve" }
+    { "type": "budget_override", "max_overage_pct": 20, "action": "approve" }
   ],
   "always_surface": [
     "any refund above max_amount_cents or failing a require clause",

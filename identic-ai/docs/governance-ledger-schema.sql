@@ -14,12 +14,12 @@
 
 -- =========================================================================
 -- REAL PAPERCLIP TABLES (read-only reference: Paperclip owns these, do not alter them)
--- Verified live against Paperclip 2026.513.0.
+-- Verified live against Paperclip 2026.525.0.
 -- =========================================================================
 
 -- activity_log: Paperclip's universal who-did-what record. One row per recorded action.
 -- This is the table your governance_ledger JOINs against by the approval id.
--- VERBATIM columns from Paperclip 2026.513.0:
+-- VERBATIM columns from Paperclip 2026.525.0:
 --   id           uuid         PK, default gen_random_uuid()
 --   company_id   uuid         NOT NULL
 --   actor_type   text         NOT NULL, default 'system'   -- intended values: 'user' | 'agent' | 'system' (app-enforced, no DB enum)
@@ -31,7 +31,7 @@
 --   details      jsonb        NULL                          -- e.g. { type, linkedIssueIds, requestedByAgentId }
 --   created_at   timestamptz  NOT NULL, default now()
 --   run_id       uuid         NULL                          -- the heartbeat run, when applicable
--- IMPORTANT, verified against Paperclip 2026.513.0: the approval-decision routes
+-- IMPORTANT, verified against Paperclip 2026.525.0: the approval-decision routes
 -- (POST /api/approvals/{id}/approve|reject|request-revision) are BOARD-gated. They are
 -- driven with a board credential, so the activity_log row they write is ALWAYS
 -- actor_type='user' (agent_id=null), whether the human or the Identic AI made the call.
@@ -78,10 +78,13 @@ CREATE TABLE IF NOT EXISTS governance_ledger (
 CREATE INDEX IF NOT EXISTS idx_governance_ledger_approval ON governance_ledger (approval_id);
 
 -- Reconstructing "what did the Identic AI do, and did Paperclip record it the same way":
---   SELECT g.*, a.actor_type, a.actor_id, a.action, a.created_at
---   FROM governance_ledger g
---   JOIN activity_log a ON a.entity_id = g.approval_id
---   WHERE a.action LIKE 'approval.%';
--- The activity_log row will show actor_type='user' (a board action); the governance_ledger row
+-- The two stores are SEPARATE (governance_ledger in Neon, activity_log in the sandbox's
+-- Postgres), so reconcile by approval id app-side with two queries, not one cross-DB JOIN:
+--   1) in Paperclip: the approval decisions and who the actor was
+--        SELECT entity_id, actor_type, actor_id, action, created_at
+--        FROM activity_log WHERE action LIKE 'approval.%';
+--   2) in Neon: the governance rows for those approval ids
+--        SELECT * FROM governance_ledger WHERE approval_id = ANY($1);  -- ids from step 1
+-- The activity_log row shows actor_type='user' (a board action); the governance_ledger row
 -- is what records that the decision was the Identic AI's (principal='owner_identic_ai') with its
--- attestation and reasoning. The two tables together are the full audit story.
+-- attestation and reasoning. The two together are the full audit story.
