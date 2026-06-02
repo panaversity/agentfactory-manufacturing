@@ -383,6 +383,7 @@ Doctor runs the same checks onboard runs internally. Most diagnostics start here
 3. **No provider auth.** A `claude_local`/`opencode_local`/`gemini_local` Worker heartbeats but fails because the spawned CLI is not signed in (or the key is not in the environment). The activity log shows the failure. Fix: authenticate the CLI (`claude`, or `opencode auth`) or export the key, then re-run.
 4. **Worker heartbeats but the issue never reaches `done`.** For a local adapter, the spawned CLI ran but posted no disposition, so Paperclip escalates the issue to `blocked`. Fix: the Worker's instructions must always end by posting a disposition (`PATCH /api/issues/:id` with `done` / `in_review` / `blocked`). For an `http` Worker, also confirm the endpoint at `adapterConfig.url` is reachable.
 5. **Onboard exits with an empty `db/` directory and no clear error.** A known initialization hiccup. Recovery: `rm -rf <data-dir>` and re-onboard. Do not try to repair the half-state.
+6. **A probation Worker's run fails with `409 Issue run ownership conflict` or `error_max_turns`, even though its work looks right.** Concurrent runs are racing for the trial issues (a scheduled heartbeat plus a manual `heartbeat run`, or `maxConcurrentRuns > 1`), and/or `maxTurnsPerRun` is too low so the Worker spends its turns recovering. Fix: see "Run the probation cleanly" in PART 3 (`heartbeat.enabled: false`, `maxConcurrentRuns: 1`, `maxTurnsPerRun` about 15-20, one issue per run). The model's work can be perfect while the run still fails on this, so read the disposition and the run transcript, not just the run status.
 
 ### When something fails, or you are unsure
 
@@ -407,6 +408,8 @@ curl -X PATCH "$PAPERCLIP_API_URL/api/companies/<id>" -H "Content-Type: applicat
 
 Verify: a hire now returns `agent.status = "pending_approval"`. If it returns `idle`, the gate is still off and the whole narrative of this course collapses. This single company boolean is the ONLY built-in **hire-gating** lever Paperclip has: there is no native per-class or per-role auto-approval policy that lets one class of future hires skip the board while another does not. That finer "pre-approve this class of hires" rule is still curriculum discipline you model on top. (Authority on what a Worker may DO once hired is a separate, real, server-enforced system; see the next section.)
 
+**The gate is global, so order matters for the baseline.** Once it is on, even the direct `POST /api/companies/:id/agents` route is refused (`409 Direct agent creation requires board approval. Use .../agent-hires`), not only the `agent-hires` flow. So stand up the baseline fixed team (the CEO and CMO) BEFORE you flip the gate, or create them through `agent-hires` + approve. If you flip the gate first and then try to seed the fixed team with `/agents`, you hit that 409. (Verified live, v2026.529.0.)
+
 ## Authority: what is enforced vs what is prose (READ THIS)
 
 This is the correction that matters most in the June 2026 redesign. An earlier draft of this brief said "Paperclip has no real authority primitive; authority is only free-text prose in `capabilities`." **That is now wrong.** Between v2026.512.0 and v2026.529.0 Paperclip shipped a real, server-enforced authority layer. Teach the distinction below; do not tell the human authority is "just prose."
@@ -426,7 +429,7 @@ The pedagogical reframe: position "build your own finer-grained authority" as **
 
 ## Hire = `POST /api/companies/:companyId/agent-hires` (NOT `/agents`)
 
-`/agents` (PART 2) creates a Worker directly, no gate. `agent-hires` creates a **pending hire approval**. The body matches the agent-create shape (PART 2) plus three hire-specific fields:
+`/agents` (PART 2) creates a Worker directly and skips the board ONLY while the gate is off; once `requireBoardApprovalForNewAgents` is on, `/agents` returns 409 too (the gate is global, see "Flip the gate first"). `agent-hires` is the route that creates a **pending hire approval** under the gate. The body matches the agent-create shape (PART 2) plus three hire-specific fields:
 
 - `desiredSkills`: array of skill slugs the new Worker should have. Accepts a company skill id, a canonical key, or a unique slug (e.g. `vercel-labs/agent-browser/agent-browser`). The skill must already be in the company library (import via `POST /api/companies/:id/skills/import`) or be a resolvable slug.
 - `instructionsBundle`: `{ entryFile: "AGENTS.md", files: { "AGENTS.md": "..." } }`, the instructions the Worker reads each heartbeat (an alternative to a path-based `instructionsFilePath`).
@@ -447,8 +450,19 @@ Two gotchas, both observed live, both real:
 
 - **`opencode_local` mutates `~/.claude/skills` at runtime** (injects `paperclip-*` symlinks, may remove conflicting skills; removals are not auto-restored). Run the heartbeat workstation sandboxed (fresh user, VM, or devcontainer), back up `~/.claude/skills` first, and pin the Paperclip version.
 - **Never put a provider key in `adapterConfig.env`**: Paperclip echoes it back in plaintext on `GET /api/agents/:id`. Authenticate the CLI itself, or use Paperclip's company-scoped secrets primitive (`/api/companies/:id/secret-providers` + `/api/companies/:id/secrets`).
+- **Reconfiguring a live Worker needs an absolute `adapterConfig.cwd` if you keep a relative `instructionsFilePath`.** The hire accepts a relative `instructionsFilePath` (e.g. `"AGENTS.md"`) with no `cwd`, but a later `PATCH /api/agents/:id` rejects that same config with `422 Legacy relative instructionsFilePath requires adapterConfig.cwd to be set to an absolute path`. So when you tune a running Worker (raising `maxTurnsPerRun`, toggling heartbeat), set `adapterConfig.cwd` to an absolute path, or deliver instructions through `instructionsBundle` instead of a relative file path. (Verified live, v2026.529.0.)
 
 There is no "Claude Managed Agents" Paperclip substrate (PART 2, "How a Worker runs and bills"). The genuine hosted alternative is `cursor_cloud` (billed by Cursor, not the worked path here), and a self-hosted Claude Agent SDK Worker sits behind the `http` adapter. Confirm the live runtime set with `GET /api/adapters`. The hire payload is the same across all of them.
+
+## Run the probation cleanly (the run-ownership trap)
+
+The probation in Scenario 4 is where a naive setup bites, and the failure is sneaky: the Worker does good work but the run still fails, so the human sees "perfect translation, failed probation." Configure the probation Worker so its runs cannot collide, and feed it one trial at a time.
+
+- **In the hire's `runtimeConfig.heartbeat`, set `enabled: false` and `maxConcurrentRuns: 1`.** You fire the trial heartbeats yourself, one issue at a time, with `paperclipai heartbeat run -a <agent-id> --source assignment` (it blocks until the run finishes). Do NOT leave a scheduled heartbeat on AND also fire manual ones: the scheduled run and your manual run race, each checks out a different issue, and you end up with two runs fighting over the same work.
+- **Set `adapterConfig.maxTurnsPerRun` to about 15-20.** The low default (`8`) is not enough for read-the-issue plus translate plus post-a-disposition, and a Worker that hits a conflict burns its remaining turns trying to recover, tripping `error_max_turns`.
+- **Hand the Worker ONE issue per run, and say so in its instructions.** In the `instructionsBundle`, tell it: "Resolve ONLY the single issue checked out to THIS run. Your inbox may list other issues assigned to you; do not touch them. Post exactly one disposition, then stop." A Worker that scans its whole inbox and tries to `PATCH` several issues hits `409 Issue run ownership conflict` on the ones another run owns.
+
+With those three settings each trial issue reaches `done` (in-lane) or `blocked` (escalated out of lane), and you score the probation on the Worker's actual judgment instead of fighting the orchestration. (All verified live, v2026.529.0: the naive config produced `409` + `error_max_turns` failures that masked excellent work; the three fixes made the runs succeed.)
 
 ## The approval-collaboration loop
 
