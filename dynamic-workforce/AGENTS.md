@@ -456,10 +456,10 @@ There is no "Claude Managed Agents" Paperclip substrate (PART 2, "How a Worker r
 
 ## Run the probation cleanly (the run-ownership trap)
 
-The probation in Scenario 4 is where a naive setup bites, and the failure is sneaky: the Worker does good work but the run still fails, so the human sees "perfect translation, failed probation." Configure the probation Worker so its runs cannot collide, and feed it one trial at a time.
+The probation in Scenario 4 is where a naive setup bites, and the failure is sneaky: the Worker does good work but the run still fails, so the human sees "great work, failed probation." Configure the probation Worker so its runs cannot collide, and feed it one trial at a time.
 
 - **In the hire's `runtimeConfig.heartbeat`, set `enabled: false` and `maxConcurrentRuns: 1`.** You fire the trial heartbeats yourself, one issue at a time, with `paperclipai heartbeat run -a <agent-id> --source assignment` (it blocks until the run finishes). Do NOT leave a scheduled heartbeat on AND also fire manual ones: the scheduled run and your manual run race, each checks out a different issue, and you end up with two runs fighting over the same work.
-- **Set `adapterConfig.maxTurnsPerRun` to about 15-20.** The low default (`8`) is not enough for read-the-issue plus translate plus post-a-disposition, and a Worker that hits a conflict burns its remaining turns trying to recover, tripping `error_max_turns`.
+- **Set `adapterConfig.maxTurnsPerRun` to about 15-20.** The low default (`8`) is not enough for read-the-issue plus do-the-work plus post-a-disposition, and a Worker that hits a conflict burns its remaining turns trying to recover, tripping `error_max_turns`.
 - **Hand the Worker ONE issue per run, and say so in its instructions.** In the `instructionsBundle`, tell it: "Resolve ONLY the single issue checked out to THIS run. Your inbox may list other issues assigned to you; do not touch them. Post exactly one disposition, then stop." A Worker that scans its whole inbox and tries to `PATCH` several issues hits `409 Issue run ownership conflict` on the ones another run owns.
 
 With those three settings each trial issue reaches `done` (in-lane) or `blocked` (escalated out of lane), and you score the probation on the Worker's actual judgment instead of fighting the orchestration. (All verified live, v2026.529.0: the naive config produced `409` + `error_max_turns` failures that masked excellent work; the three fixes made the runs succeed.)
