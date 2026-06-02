@@ -1,0 +1,26 @@
+# Secrets: never commit a filled-in .env
+.env
+.env.local
+.env.*.local
+
+# Paperclip local install data + logs
+.paperclip/
+*.log
+
+# Node
+node_modules/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+
+# Live instance state: embedded Postgres, master.key, JWT secret, server logs.
+# Never commit — it holds real local secrets and is not portable. The readable,
+# importable end-state lives in northwind-company/ instead (paperclipai company export).
+paperclip-data/
+
+# NOTE: northwind-site/ (the landing page the workforce built) IS committed here —
+# it is the worked-solution deliverable, not throwaway scratch.
