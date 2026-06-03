@@ -1,0 +1,79 @@
+schema: "paperclip/v1"
+agents:
+  ceo:
+    role: "ceo"
+    capabilities: "Leads Northwind toward launching a weekly AI newsletter and reaching 1,000 subscribers in 90 days; sets strategy and approves board decisions."
+    adapter:
+      config:
+        model: "openai/gpt-5.4-mini"
+      type: "opencode_local"
+    runtime:
+      heartbeat:
+        intervalSec: 120
+        maxConcurrentRuns: 1
+    permissions:
+      canCreateAgents: true
+  cmo:
+    role: "cmo"
+    capabilities: "Owns newsletter growth: content, audience, and subscriber acquisition toward 1,000 subscribers in 90 days. Reports to the CEO."
+    adapter:
+      config:
+        model: "openai/gpt-5.4-mini"
+      type: "opencode_local"
+  reader-support-specialist:
+    role: "general"
+    capabilities: "Handles inbound reader support for the Northwind newsletter: fixes broken links, processes account/data changes like email updates, and acknowledges reader mail. Resolves only what is inside its granted authority; escalates anything money-bearing or policy-bearing (refunds, pricing, subscription terms) to the board instead of acting on it."
+    adapter:
+      config:
+        model: "openai/gpt-5.4-mini"
+        timeoutSec: 300
+      type: "opencode_local"
+    runtime:
+      heartbeat:
+        intervalSec: 60
+        maxConcurrentRuns: 1
+    budgetMonthlyCents: 500
+company:
+  attachmentMaxBytes: 10485760
+  requireBoardApprovalForNewAgents: true
+projects:
+  newsletter-operations:
+    color: "#6366f1"
+    status: "backlog"
+  workforce-operations:
+    color: "#8b5cf6"
+    status: "backlog"
+routines:
+  gap-scan-verify:
+    status: "archived"
+    triggers:
+      -
+        kind: "schedule"
+        cronExpression: "26 12 * * *"
+        timezone: "UTC"
+  probe:
+    status: "paused"
+  probe-2:
+    status: "paused"
+  send-the-weekly-issue:
+    triggers:
+      -
+        kind: "schedule"
+        cronExpression: "0 9 * * 1"
+        timezone: "UTC"
+  weekly-capability-gap-scan:
+    status: "paused"
+    triggers:
+      -
+        kind: "schedule"
+        cronExpression: "0 9 * * 1"
+        label: "Monday morning"
+        timezone: "Asia/Karachi"
+sidebar:
+  agents:
+    - "ceo"
+    - "cmo"
+    - "reader-support-specialist"
+  projects:
+    - "newsletter-operations"
+    - "workforce-operations"
