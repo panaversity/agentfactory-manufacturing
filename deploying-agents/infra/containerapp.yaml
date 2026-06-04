@@ -1,0 +1,37 @@
+# Azure Container Apps definition for Maya's harness (declarative form).
+# Apply with:
+#   az containerapp create --name maya-harness --resource-group maya-rg \
+#     --environment maya-env --yaml infra/containerapp.yaml
+#
+# Replace <ACR_NAME> with your registry. Secret VALUES are not stored here;
+# set them with `az containerapp secret set` and reference them by name.
+properties:
+  configuration:
+    ingress:
+      external: true
+      targetPort: 8000
+      transport: auto
+    secrets:
+      - name: openai-api-key
+      - name: database-url
+  template:
+    containers:
+      - name: maya-harness
+        image: <ACR_NAME>.azurecr.io/maya-harness:latest
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          - name: OPENAI_API_KEY
+            secretRef: openai-api-key
+          - name: DATABASE_URL
+            secretRef: database-url
+    scale:
+      # Scale to zero on no traffic; cold start on the first request.
+      minReplicas: 0
+      maxReplicas: 3
+      rules:
+        - name: http-rule
+          http:
+            metadata:
+              concurrentRequests: "20"
