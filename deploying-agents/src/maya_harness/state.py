@@ -5,12 +5,13 @@ Two backends behind one interface:
   DATABASE_URL set -> asyncpg against Postgres (Neon)
   DATABASE_URL absent -> aiosqlite-free SQLite via the stdlib sqlite3 module
 
-Neon footguns baked in (see normalize_neon_dsn):
-  1. asyncpg does not understand `channel_binding`. Neon's copy-paste string
-     includes it, so we strip it before connecting.
+Neon notes (see normalize_neon_dsn):
+  1. Neon's copy-paste string includes `channel_binding=require` for libpq
+     clients. asyncpg is not libpq-based, so it ignores the param and connects
+     fine; we trim it only to keep the DSN tidy. Not a failure to prevent.
   2. The `-pooler` (PgBouncer) endpoint silently drops server settings like
-     `search_path`. We never set search_path as a server setting; instead we
-     schema-qualify every table (public.runs, public.sessions, ...).
+     `search_path` (the real footgun). We never set search_path as a server
+     setting; instead we schema-qualify every table (public.runs, ...).
 """
 
 from __future__ import annotations
@@ -29,11 +30,11 @@ except ImportError:  # pragma: no cover
 
 
 def normalize_neon_dsn(dsn: str) -> str:
-    """Strip params asyncpg cannot parse from a Neon connection string.
+    """Trim cosmetic params from a Neon connection string.
 
-    asyncpg recognizes only a fixed set of DSN params and treats unknown ones
-    as server settings, which then fail against PgBouncer. `channel_binding`
-    is the common offender in Neon's copy-paste string. We keep sslmode.
+    Neon ships `channel_binding=require` for libpq clients; asyncpg is not one,
+    so it ignores the param and connects fine either way. We trim it only so the
+    DSN reflects what asyncpg actually honors. sslmode is kept.
     """
     for token in (
         "&channel_binding=require",

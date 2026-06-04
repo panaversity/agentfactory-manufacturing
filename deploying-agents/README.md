@@ -71,4 +71,4 @@ Tear down when done: `az group delete --name maya-rg --yes`.
 
 - Default model is `gpt-5.4-mini` (the SDK default). Override with `MAYA_MODEL`.
 - E2B is the testable sandbox here because it has a free Hobby tier. Cloudflare is the course's primary backend but its Containers need a paid Workers plan.
-- The Neon connection string includes `channel_binding`, which asyncpg cannot parse; the harness strips it for you. Use the direct (non-pooler) endpoint when running `make schema`.
+- Neon's connection string includes `channel_binding=require` (for libpq clients). asyncpg is not libpq-based, so it ignores the parameter and connects fine; `normalize_neon_dsn` trims it only for a tidy DSN. The real footgun: the `-pooler` endpoint drops `search_path`, so use the direct (non-pooler) endpoint when running `make schema`.
