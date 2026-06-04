@@ -1,0 +1,29 @@
+# Secrets: never commit a filled-in .env
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Harness-generated artifacts (not base payload)
+maya.db
+maya.db-*
+artifacts/
+
+# Node
+node_modules/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json

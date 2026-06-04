@@ -1,0 +1,28 @@
+[project]
+name = "maya-harness"
+version = "0.1.0"
+description = "Maya's Tier-1 Support agent, deployed as a FastAPI harness on the OpenAI Agents SDK."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # [e2b] pulls the free-tier sandbox client; [s3] pulls boto3 for R2.
+    # Add the cloudflare extra (openai-agents[cloudflare]) if you switch to the Cloudflare sandbox.
+    "openai-agents[e2b,s3]>=0.17,<0.18",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "asyncpg>=0.30",
+    "boto3>=1.34",
+    "e2b>=1",
+    "python-dotenv>=1",
+    "pydantic>=2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/maya_harness"]
+
+# Standalone project: do not join the parent monorepo workspace.
+[tool.uv.workspace]
+members = []
