@@ -1,40 +1,465 @@
 {
   "exported_from": "paperclip",
-  "company_id": "co_maya_support",
-  "owner_human_id": "owner_human_maya",
-  "note": "Representative sample of Maya's resolved approvals from Courses 5-7. Read-only lab input for Decision 2.",
+  "company_id": "co_owner_support",
+  "owner_human_id": "owner_human",
+  "note": "Representative sample of your resolved approvals from Courses 5-7. Read-only lab input for Decision 2.",
   "approvals": [
-    { "approval_id": "apr_h001", "type": "refund", "amount_cents": 4200, "context": { "account_age_days": 410, "prior_refunds_6mo": 0, "reason": "duplicate-charge" }, "decision": "approve", "comment": null, "latency_minutes": 2, "resolved_at": "2026-02-03T14:11:00Z" },
-    { "approval_id": "apr_h002", "type": "refund", "amount_cents": 8900, "context": { "account_age_days": 1167, "prior_refunds_6mo": 0, "reason": "billing-error" }, "decision": "approve", "comment": null, "latency_minutes": 3, "resolved_at": "2026-02-04T09:22:00Z" },
-    { "approval_id": "apr_h003", "type": "refund", "amount_cents": 15000, "context": { "account_age_days": 88, "prior_refunds_6mo": 1, "reason": "service-outage" }, "decision": "approve", "comment": "ok this once, watch the account", "latency_minutes": 11, "resolved_at": "2026-02-05T16:40:00Z" },
-    { "approval_id": "apr_h004", "type": "refund", "amount_cents": 32000, "context": { "account_age_days": 730, "prior_refunds_6mo": 0, "reason": "annual-plan-cancellation" }, "decision": "approve", "comment": null, "latency_minutes": 4, "resolved_at": "2026-02-06T11:05:00Z" },
-    { "approval_id": "apr_h005", "type": "refund", "amount_cents": 71000, "context": { "account_age_days": 95, "prior_refunds_6mo": 2, "reason": "dissatisfied" }, "decision": "request_revision", "comment": "two refunds in 6mo on a 3mo account, get more detail before we pay", "latency_minutes": 38, "resolved_at": "2026-02-08T13:30:00Z" },
-    { "approval_id": "apr_h006", "type": "refund", "amount_cents": 120000, "context": { "account_age_days": 60, "prior_refunds_6mo": 3, "reason": "dissatisfied" }, "decision": "decline", "comment": "pattern abuse, escalate to me directly not via refund", "latency_minutes": 52, "resolved_at": "2026-02-09T15:12:00Z" },
-    { "approval_id": "apr_h007", "type": "refund", "amount_cents": 6500, "context": { "account_age_days": 980, "prior_refunds_6mo": 0, "reason": "duplicate-charge" }, "decision": "approve", "comment": null, "latency_minutes": 1, "resolved_at": "2026-02-10T08:45:00Z" },
-    { "approval_id": "apr_h008", "type": "refund", "amount_cents": 9900, "context": { "account_age_days": 220, "prior_refunds_6mo": 0, "reason": "feature-misunderstanding" }, "decision": "approve", "comment": null, "latency_minutes": 5, "resolved_at": "2026-02-11T10:20:00Z" },
-    { "approval_id": "apr_h009", "type": "refund", "amount_cents": 48000, "context": { "account_age_days": 1500, "prior_refunds_6mo": 0, "reason": "billing-error" }, "decision": "approve", "comment": null, "latency_minutes": 3, "resolved_at": "2026-02-12T14:55:00Z" },
-    { "approval_id": "apr_h010", "type": "refund", "amount_cents": 88000, "context": { "account_age_days": 410, "prior_refunds_6mo": 1, "reason": "service-outage" }, "decision": "approve", "comment": "outage was real, fine", "latency_minutes": 14, "resolved_at": "2026-02-13T09:08:00Z" },
-    { "approval_id": "apr_h011", "type": "refund", "amount_cents": 3100, "context": { "account_age_days": 55, "prior_refunds_6mo": 0, "reason": "duplicate-charge" }, "decision": "approve", "comment": null, "latency_minutes": 2, "resolved_at": "2026-02-14T11:30:00Z" },
-    { "approval_id": "apr_h012", "type": "refund", "amount_cents": 19000, "context": { "account_age_days": 870, "prior_refunds_6mo": 0, "reason": "downgrade-credit" }, "decision": "approve", "comment": null, "latency_minutes": 4, "resolved_at": "2026-02-16T13:14:00Z" },
-    { "approval_id": "apr_h013", "type": "refund", "amount_cents": 145000, "context": { "account_age_days": 2200, "prior_refunds_6mo": 0, "reason": "enterprise-contract-dispute" }, "decision": "approve", "comment": "big but it's a 6yr enterprise account, do it and loop me on the relationship", "latency_minutes": 41, "resolved_at": "2026-02-17T16:02:00Z" },
-    { "approval_id": "apr_h014", "type": "refund", "amount_cents": 5400, "context": { "account_age_days": 300, "prior_refunds_6mo": 0, "reason": "billing-error" }, "decision": "approve", "comment": null, "latency_minutes": 1, "resolved_at": "2026-02-18T08:50:00Z" },
-    { "approval_id": "apr_h015", "type": "refund", "amount_cents": 11200, "context": { "account_age_days": 130, "prior_refunds_6mo": 0, "reason": "dissatisfied" }, "decision": "approve", "comment": null, "latency_minutes": 6, "resolved_at": "2026-02-19T12:40:00Z" },
-    { "approval_id": "apr_h016", "type": "refund", "amount_cents": 62000, "context": { "account_age_days": 45, "prior_refunds_6mo": 0, "reason": "dissatisfied" }, "decision": "request_revision", "comment": "new account, large ask, want the support transcript first", "latency_minutes": 29, "resolved_at": "2026-02-20T15:25:00Z" },
-    { "approval_id": "apr_h017", "type": "budget_override", "amount_cents": 0, "context": { "worker": "tier1_support", "monthly_cap_cents": 100000, "requested_overage_pct": 8, "reason": "ticket-surge" }, "decision": "approve", "comment": null, "latency_minutes": 3, "resolved_at": "2026-02-21T09:00:00Z" },
-    { "approval_id": "apr_h018", "type": "budget_override", "amount_cents": 0, "context": { "worker": "tier2_specialist", "monthly_cap_cents": 150000, "requested_overage_pct": 14, "reason": "complex-case-load" }, "decision": "approve", "comment": null, "latency_minutes": 7, "resolved_at": "2026-02-23T11:18:00Z" },
-    { "approval_id": "apr_h019", "type": "budget_override", "amount_cents": 0, "context": { "worker": "manager_agent", "monthly_cap_cents": 80000, "requested_overage_pct": 45, "reason": "model-upgrade" }, "decision": "decline", "comment": "45% is not an override, that's a new budget. bring me the plan.", "latency_minutes": 33, "resolved_at": "2026-02-24T14:47:00Z" },
-    { "approval_id": "apr_h020", "type": "budget_override", "amount_cents": 0, "context": { "worker": "tier1_support", "monthly_cap_cents": 100000, "requested_overage_pct": 11, "reason": "ticket-surge" }, "decision": "approve", "comment": null, "latency_minutes": 2, "resolved_at": "2026-02-26T08:33:00Z" },
-    { "approval_id": "apr_h021", "type": "hire", "amount_cents": 0, "context": { "role": "tier1_support_burst", "extends_envelope": false, "monthly_budget_cents": 60000, "reason": "seasonal-surge" }, "decision": "approve", "comment": "standard burst hire, fine", "latency_minutes": 9, "resolved_at": "2026-02-27T10:10:00Z" },
-    { "approval_id": "apr_h022", "type": "hire", "amount_cents": 0, "context": { "role": "spanish_language_tier2", "extends_envelope": false, "monthly_budget_cents": 140000, "reason": "new-language-demand" }, "decision": "approve", "comment": "first hire in a new language is a strategic moment, I want to see these even when they're in-envelope", "latency_minutes": 47, "resolved_at": "2026-03-01T13:55:00Z" },
-    { "approval_id": "apr_h023", "type": "hire", "amount_cents": 0, "context": { "role": "legal_specialist", "extends_envelope": true, "monthly_budget_cents": 300000, "reason": "contract-review-capability-gap" }, "decision": "approve", "comment": "envelope extension, reviewed the eval pack, approving — this is the Course 7 hire", "latency_minutes": 95, "resolved_at": "2026-03-03T16:30:00Z" },
-    { "approval_id": "apr_h024", "type": "hire", "amount_cents": 0, "context": { "role": "social_media_manager", "extends_envelope": true, "monthly_budget_cents": 220000, "reason": "marketing-expansion" }, "decision": "decline", "comment": "out of scope for a support company right now, not hiring into marketing", "latency_minutes": 61, "resolved_at": "2026-03-05T11:42:00Z" },
-    { "approval_id": "apr_h025", "type": "termination", "amount_cents": 0, "context": { "worker": "tier1_support_burst", "reason": "seasonal-surge-ended", "tenure_days": 34 }, "decision": "approve", "comment": "surge is over, retire it, keep the config for next time", "latency_minutes": 18, "resolved_at": "2026-03-08T09:20:00Z" },
-    { "approval_id": "apr_h026", "type": "termination", "amount_cents": 0, "context": { "worker": "tier2_specialist", "reason": "underperforming-eval-scores", "tenure_days": 210 }, "decision": "request_revision", "comment": "don't terminate on one bad eval window, retrain and re-eval first", "latency_minutes": 55, "resolved_at": "2026-03-10T15:08:00Z" },
-    { "approval_id": "apr_h027", "type": "refund", "amount_cents": 7700, "context": { "account_age_days": 640, "prior_refunds_6mo": 0, "reason": "duplicate-charge" }, "decision": "approve", "comment": null, "latency_minutes": 2, "resolved_at": "2026-03-12T08:15:00Z" },
-    { "approval_id": "apr_h028", "type": "refund", "amount_cents": 26000, "context": { "account_age_days": 1020, "prior_refunds_6mo": 0, "reason": "billing-error" }, "decision": "approve", "comment": null, "latency_minutes": 3, "resolved_at": "2026-03-13T10:48:00Z" },
-    { "approval_id": "apr_h029", "type": "refund", "amount_cents": 99000, "context": { "account_age_days": 1800, "prior_refunds_6mo": 0, "reason": "service-outage" }, "decision": "approve", "comment": "long-tenure, real outage, fine", "latency_minutes": 12, "resolved_at": "2026-03-15T14:20:00Z" },
-    { "approval_id": "apr_h030", "type": "refund", "amount_cents": 13500, "context": { "account_age_days": 75, "prior_refunds_6mo": 1, "reason": "dissatisfied" }, "decision": "approve", "comment": "borderline, approving but flag if it happens again", "latency_minutes": 16, "resolved_at": "2026-03-17T11:33:00Z" },
-    { "approval_id": "apr_h031", "type": "budget_override", "amount_cents": 0, "context": { "worker": "legal_specialist", "monthly_cap_cents": 300000, "requested_overage_pct": 6, "reason": "contract-volume" }, "decision": "approve", "comment": null, "latency_minutes": 4, "resolved_at": "2026-03-19T09:55:00Z" },
-    { "approval_id": "apr_h032", "type": "refund", "amount_cents": 4800, "context": { "account_age_days": 520, "prior_refunds_6mo": 0, "reason": "duplicate-charge" }, "decision": "approve", "comment": null, "latency_minutes": 1, "resolved_at": "2026-03-20T08:05:00Z" }
+    {
+      "approval_id": "apr_h001",
+      "type": "refund",
+      "amount_cents": 4200,
+      "context": {
+        "account_age_days": 410,
+        "prior_refunds_6mo": 0,
+        "reason": "duplicate-charge"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 2,
+      "resolved_at": "2026-02-03T14:11:00Z"
+    },
+    {
+      "approval_id": "apr_h002",
+      "type": "refund",
+      "amount_cents": 8900,
+      "context": {
+        "account_age_days": 1167,
+        "prior_refunds_6mo": 0,
+        "reason": "billing-error"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 3,
+      "resolved_at": "2026-02-04T09:22:00Z"
+    },
+    {
+      "approval_id": "apr_h003",
+      "type": "refund",
+      "amount_cents": 15000,
+      "context": {
+        "account_age_days": 88,
+        "prior_refunds_6mo": 1,
+        "reason": "service-outage"
+      },
+      "decision": "approve",
+      "comment": "ok this once, watch the account",
+      "latency_minutes": 11,
+      "resolved_at": "2026-02-05T16:40:00Z"
+    },
+    {
+      "approval_id": "apr_h004",
+      "type": "refund",
+      "amount_cents": 32000,
+      "context": {
+        "account_age_days": 730,
+        "prior_refunds_6mo": 0,
+        "reason": "annual-plan-cancellation"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 4,
+      "resolved_at": "2026-02-06T11:05:00Z"
+    },
+    {
+      "approval_id": "apr_h005",
+      "type": "refund",
+      "amount_cents": 71000,
+      "context": {
+        "account_age_days": 95,
+        "prior_refunds_6mo": 2,
+        "reason": "dissatisfied"
+      },
+      "decision": "request_revision",
+      "comment": "two refunds in 6mo on a 3mo account, get more detail before we pay",
+      "latency_minutes": 38,
+      "resolved_at": "2026-02-08T13:30:00Z"
+    },
+    {
+      "approval_id": "apr_h006",
+      "type": "refund",
+      "amount_cents": 120000,
+      "context": {
+        "account_age_days": 60,
+        "prior_refunds_6mo": 3,
+        "reason": "dissatisfied"
+      },
+      "decision": "decline",
+      "comment": "pattern abuse, escalate to me directly not via refund",
+      "latency_minutes": 52,
+      "resolved_at": "2026-02-09T15:12:00Z"
+    },
+    {
+      "approval_id": "apr_h007",
+      "type": "refund",
+      "amount_cents": 6500,
+      "context": {
+        "account_age_days": 980,
+        "prior_refunds_6mo": 0,
+        "reason": "duplicate-charge"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 1,
+      "resolved_at": "2026-02-10T08:45:00Z"
+    },
+    {
+      "approval_id": "apr_h008",
+      "type": "refund",
+      "amount_cents": 9900,
+      "context": {
+        "account_age_days": 220,
+        "prior_refunds_6mo": 0,
+        "reason": "feature-misunderstanding"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 5,
+      "resolved_at": "2026-02-11T10:20:00Z"
+    },
+    {
+      "approval_id": "apr_h009",
+      "type": "refund",
+      "amount_cents": 48000,
+      "context": {
+        "account_age_days": 1500,
+        "prior_refunds_6mo": 0,
+        "reason": "billing-error"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 3,
+      "resolved_at": "2026-02-12T14:55:00Z"
+    },
+    {
+      "approval_id": "apr_h010",
+      "type": "refund",
+      "amount_cents": 88000,
+      "context": {
+        "account_age_days": 410,
+        "prior_refunds_6mo": 1,
+        "reason": "service-outage"
+      },
+      "decision": "approve",
+      "comment": "outage was real, fine",
+      "latency_minutes": 14,
+      "resolved_at": "2026-02-13T09:08:00Z"
+    },
+    {
+      "approval_id": "apr_h011",
+      "type": "refund",
+      "amount_cents": 3100,
+      "context": {
+        "account_age_days": 55,
+        "prior_refunds_6mo": 0,
+        "reason": "duplicate-charge"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 2,
+      "resolved_at": "2026-02-14T11:30:00Z"
+    },
+    {
+      "approval_id": "apr_h012",
+      "type": "refund",
+      "amount_cents": 19000,
+      "context": {
+        "account_age_days": 870,
+        "prior_refunds_6mo": 0,
+        "reason": "downgrade-credit"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 4,
+      "resolved_at": "2026-02-16T13:14:00Z"
+    },
+    {
+      "approval_id": "apr_h013",
+      "type": "refund",
+      "amount_cents": 145000,
+      "context": {
+        "account_age_days": 2200,
+        "prior_refunds_6mo": 0,
+        "reason": "enterprise-contract-dispute"
+      },
+      "decision": "approve",
+      "comment": "big but it's a 6yr enterprise account, do it and loop me on the relationship",
+      "latency_minutes": 41,
+      "resolved_at": "2026-02-17T16:02:00Z"
+    },
+    {
+      "approval_id": "apr_h014",
+      "type": "refund",
+      "amount_cents": 5400,
+      "context": {
+        "account_age_days": 300,
+        "prior_refunds_6mo": 0,
+        "reason": "billing-error"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 1,
+      "resolved_at": "2026-02-18T08:50:00Z"
+    },
+    {
+      "approval_id": "apr_h015",
+      "type": "refund",
+      "amount_cents": 11200,
+      "context": {
+        "account_age_days": 130,
+        "prior_refunds_6mo": 0,
+        "reason": "dissatisfied"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 6,
+      "resolved_at": "2026-02-19T12:40:00Z"
+    },
+    {
+      "approval_id": "apr_h016",
+      "type": "refund",
+      "amount_cents": 62000,
+      "context": {
+        "account_age_days": 45,
+        "prior_refunds_6mo": 0,
+        "reason": "dissatisfied"
+      },
+      "decision": "request_revision",
+      "comment": "new account, large ask, want the support transcript first",
+      "latency_minutes": 29,
+      "resolved_at": "2026-02-20T15:25:00Z"
+    },
+    {
+      "approval_id": "apr_h017",
+      "type": "budget_override",
+      "amount_cents": 0,
+      "context": {
+        "worker": "tier1_support",
+        "monthly_cap_cents": 100000,
+        "requested_overage_pct": 8,
+        "reason": "ticket-surge"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 3,
+      "resolved_at": "2026-02-21T09:00:00Z"
+    },
+    {
+      "approval_id": "apr_h018",
+      "type": "budget_override",
+      "amount_cents": 0,
+      "context": {
+        "worker": "tier2_specialist",
+        "monthly_cap_cents": 150000,
+        "requested_overage_pct": 14,
+        "reason": "complex-case-load"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 7,
+      "resolved_at": "2026-02-23T11:18:00Z"
+    },
+    {
+      "approval_id": "apr_h019",
+      "type": "budget_override",
+      "amount_cents": 0,
+      "context": {
+        "worker": "manager_agent",
+        "monthly_cap_cents": 80000,
+        "requested_overage_pct": 45,
+        "reason": "model-upgrade"
+      },
+      "decision": "decline",
+      "comment": "45% is not an override, that's a new budget. bring me the plan.",
+      "latency_minutes": 33,
+      "resolved_at": "2026-02-24T14:47:00Z"
+    },
+    {
+      "approval_id": "apr_h020",
+      "type": "budget_override",
+      "amount_cents": 0,
+      "context": {
+        "worker": "tier1_support",
+        "monthly_cap_cents": 100000,
+        "requested_overage_pct": 11,
+        "reason": "ticket-surge"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 2,
+      "resolved_at": "2026-02-26T08:33:00Z"
+    },
+    {
+      "approval_id": "apr_h021",
+      "type": "hire",
+      "amount_cents": 0,
+      "context": {
+        "role": "tier1_support_burst",
+        "extends_envelope": false,
+        "monthly_budget_cents": 60000,
+        "reason": "seasonal-surge"
+      },
+      "decision": "approve",
+      "comment": "standard burst hire, fine",
+      "latency_minutes": 9,
+      "resolved_at": "2026-02-27T10:10:00Z"
+    },
+    {
+      "approval_id": "apr_h022",
+      "type": "hire",
+      "amount_cents": 0,
+      "context": {
+        "role": "spanish_language_tier2",
+        "extends_envelope": false,
+        "monthly_budget_cents": 140000,
+        "reason": "new-language-demand"
+      },
+      "decision": "approve",
+      "comment": "first hire in a new language is a strategic moment, I want to see these even when they're in-envelope",
+      "latency_minutes": 47,
+      "resolved_at": "2026-03-01T13:55:00Z"
+    },
+    {
+      "approval_id": "apr_h023",
+      "type": "hire",
+      "amount_cents": 0,
+      "context": {
+        "role": "legal_specialist",
+        "extends_envelope": true,
+        "monthly_budget_cents": 300000,
+        "reason": "contract-review-capability-gap"
+      },
+      "decision": "approve",
+      "comment": "envelope extension, reviewed the eval pack, approving — this is the Course 7 hire",
+      "latency_minutes": 95,
+      "resolved_at": "2026-03-03T16:30:00Z"
+    },
+    {
+      "approval_id": "apr_h024",
+      "type": "hire",
+      "amount_cents": 0,
+      "context": {
+        "role": "social_media_manager",
+        "extends_envelope": true,
+        "monthly_budget_cents": 220000,
+        "reason": "marketing-expansion"
+      },
+      "decision": "decline",
+      "comment": "out of scope for a support company right now, not hiring into marketing",
+      "latency_minutes": 61,
+      "resolved_at": "2026-03-05T11:42:00Z"
+    },
+    {
+      "approval_id": "apr_h025",
+      "type": "termination",
+      "amount_cents": 0,
+      "context": {
+        "worker": "tier1_support_burst",
+        "reason": "seasonal-surge-ended",
+        "tenure_days": 34
+      },
+      "decision": "approve",
+      "comment": "surge is over, retire it, keep the config for next time",
+      "latency_minutes": 18,
+      "resolved_at": "2026-03-08T09:20:00Z"
+    },
+    {
+      "approval_id": "apr_h026",
+      "type": "termination",
+      "amount_cents": 0,
+      "context": {
+        "worker": "tier2_specialist",
+        "reason": "underperforming-eval-scores",
+        "tenure_days": 210
+      },
+      "decision": "request_revision",
+      "comment": "don't terminate on one bad eval window, retrain and re-eval first",
+      "latency_minutes": 55,
+      "resolved_at": "2026-03-10T15:08:00Z"
+    },
+    {
+      "approval_id": "apr_h027",
+      "type": "refund",
+      "amount_cents": 7700,
+      "context": {
+        "account_age_days": 640,
+        "prior_refunds_6mo": 0,
+        "reason": "duplicate-charge"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 2,
+      "resolved_at": "2026-03-12T08:15:00Z"
+    },
+    {
+      "approval_id": "apr_h028",
+      "type": "refund",
+      "amount_cents": 26000,
+      "context": {
+        "account_age_days": 1020,
+        "prior_refunds_6mo": 0,
+        "reason": "billing-error"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 3,
+      "resolved_at": "2026-03-13T10:48:00Z"
+    },
+    {
+      "approval_id": "apr_h029",
+      "type": "refund",
+      "amount_cents": 99000,
+      "context": {
+        "account_age_days": 1800,
+        "prior_refunds_6mo": 0,
+        "reason": "service-outage"
+      },
+      "decision": "approve",
+      "comment": "long-tenure, real outage, fine",
+      "latency_minutes": 12,
+      "resolved_at": "2026-03-15T14:20:00Z"
+    },
+    {
+      "approval_id": "apr_h030",
+      "type": "refund",
+      "amount_cents": 13500,
+      "context": {
+        "account_age_days": 75,
+        "prior_refunds_6mo": 1,
+        "reason": "dissatisfied"
+      },
+      "decision": "approve",
+      "comment": "borderline, approving but flag if it happens again",
+      "latency_minutes": 16,
+      "resolved_at": "2026-03-17T11:33:00Z"
+    },
+    {
+      "approval_id": "apr_h031",
+      "type": "budget_override",
+      "amount_cents": 0,
+      "context": {
+        "worker": "legal_specialist",
+        "monthly_cap_cents": 300000,
+        "requested_overage_pct": 6,
+        "reason": "contract-volume"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 4,
+      "resolved_at": "2026-03-19T09:55:00Z"
+    },
+    {
+      "approval_id": "apr_h032",
+      "type": "refund",
+      "amount_cents": 4800,
+      "context": {
+        "account_age_days": 520,
+        "prior_refunds_6mo": 0,
+        "reason": "duplicate-charge"
+      },
+      "decision": "approve",
+      "comment": null,
+      "latency_minutes": 1,
+      "resolved_at": "2026-03-20T08:05:00Z"
+    }
   ]
 }

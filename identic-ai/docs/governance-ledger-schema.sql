@@ -8,7 +8,7 @@
 -- Paperclip schema, shown read-only so you know what you JOIN against.
 --
 -- Where the ledger lives: the agent provisions a Neon Postgres over the Neon MCP and creates
--- `governance_ledger` there (the `governance-ledger` skill in worked-examples/ writes rows to it).
+-- `governance_ledger` there (the `governance-ledger` skill you build in Act 2 writes rows to it).
 -- Paperclip's own tables live in the local sandbox's embedded Postgres; the JOIN below is
 -- conceptual (the two stores are separate), reconstructed by approval id when the owner reviews.
 
