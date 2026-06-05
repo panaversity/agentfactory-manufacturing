@@ -1,5 +1,5 @@
 {
-  "note": "Your company, as a seed for the local Paperclip sandbox. The agent loads this so a reader with no Course 5-7 deployment has a gradable company on day one. Field shapes follow Paperclip's verified create bodies (POST /api/companies, then POST /api/companies/:id/agents). Confirm the exact field set against the running install's GET /api/adapters before posting (live-verified on v2026.529.0; the older GET /llms/agent-configuration/<adapterType>.txt route now 404s); Paperclip drifts. The four Workers below run on the cheap no-LLM `process` adapter by default so the sandbox costs nothing to seed; switch a Worker to a local LLM adapter only when a scenario needs real reasoning. Heartbeats below ship OFF with wake-on-demand ON — the recommended 'on call, not ticking' default (an interval timer wakes a worker on a clock even when there is no work, and burns budget the moment a worker is switched to an LLM adapter). Note: `capabilities` is DESCRIPTIVE text, not an enforced limit. Paperclip enforces authority through grants/scope/approvals; in this course the delegated envelope enforces the refund bands, so the dollar figures in capabilities are the human-readable description, not a hard cap Paperclip checks.",
+  "note": "Your company, as a seed for the local Paperclip sandbox. The agent loads this so a reader with no Course 5-7 deployment has a gradable company on day one. Field shapes follow Paperclip's verified create bodies (POST /api/companies, then POST /api/companies/:id/agents). Confirm the exact field set against the running install's GET /api/adapters before posting (live-verified on v2026.529.0; the older GET /llms/agent-configuration/<adapterType>.txt route now 404s); Paperclip drifts. The company is led by its own CEO (the `ceo` role); the CEO and four Workers below run on the cheap no-LLM `process` adapter by default so the sandbox costs nothing to seed; switch a Worker to a local LLM adapter only when a scenario needs real reasoning. Heartbeats below ship OFF with wake-on-demand ON — the recommended 'on call, not ticking' default (an interval timer wakes a worker on a clock even when there is no work, and burns budget the moment a worker is switched to an LLM adapter). Note: `capabilities` is DESCRIPTIVE text, not an enforced limit. Paperclip enforces authority through grants/scope/approvals; in this course the delegated envelope enforces the refund bands, so the dollar figures in capabilities are the human-readable description, not a hard cap Paperclip checks.",
   "seed_order": "Seed in THIS order — it matters. (1) Create the company: POST /api/companies (do NOT include requireBoardApprovalForNewAgents here; it is PATCH-only and is silently dropped from the create body). (2) Seed each worker: POST /api/companies/:id/agents (succeeds while the gate is off). (3) Turn the board gate ON: PATCH /api/companies/:id with { \"requireBoardApprovalForNewAgents\": true }. (4) VERIFY it is on: GET the company returns true, or a direct POST /agents now returns 409. Skip (3) or (4) and the sandbox is UNGOVERNED — the approval gate this whole course is about would be silently off, with no error to tell you.",
   "company": {
     "name": "Your Customer Support Company",
@@ -12,6 +12,26 @@
   },
   "workers": [
     {
+      "name": "CEO",
+      "title": "Chief Executive",
+      "role": "ceo",
+      "adapterType": "process",
+      "adapterConfig": {
+        "command": "sh",
+        "args": ["-c", "echo ceo heartbeat"]
+      },
+      "capabilities": "The company's own executive: sets strategy, runs the workforce, and proposes new hires to the board when a capability gap appears (the self-expansion loop carried from the previous course). Strategy decisions and hires route to the board for approval. Cannot create agents directly.",
+      "permissions": { "canCreateAgents": false },
+      "budgetMonthlyCents": 200000,
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": false,
+          "intervalSec": 60,
+          "wakeOnDemand": true
+        }
+      }
+    },
+    {
       "name": "Tier-1 Support",
       "title": "Tier-1 Customer Support",
       "role": "general",
@@ -20,7 +40,7 @@
         "command": "sh",
         "args": ["-c", "echo tier-1 heartbeat"]
       },
-      "capabilities": "Reads customer records and drafts first-response replies. Issues refunds up to $50 without approval. Refunds over $50 and any outbound external email require board approval.",
+      "capabilities": "Reads customer records and drafts first-response replies. Issues refunds up to $50 without approval. Refunds over $50 and any outbound external email require board approval. Reports to the CEO.",
       "permissions": { "canCreateAgents": false },
       "budgetMonthlyCents": 100000,
       "runtimeConfig": {
@@ -40,7 +60,7 @@
         "command": "sh",
         "args": ["-c", "echo tier-2 heartbeat"]
       },
-      "capabilities": "Handles escalated and complex cases. Issues refunds up to $250 without approval. Refunds over $250, budget overrides, and contract questions require board approval.",
+      "capabilities": "Handles escalated and complex cases. Issues refunds up to $250 without approval. Refunds over $250, budget overrides, and contract questions require board approval. Reports to the CEO.",
       "permissions": { "canCreateAgents": false },
       "budgetMonthlyCents": 150000,
       "runtimeConfig": {
@@ -60,7 +80,7 @@
         "command": "sh",
         "args": ["-c", "echo manager heartbeat"]
       },
-      "capabilities": "Detects capability gaps, drafts hire requests, and walks them through the board. Cannot create agents directly; every hire and termination routes through an approval.",
+      "capabilities": "Reports to the CEO. Surfaces capability gaps to the CEO, who proposes the hire to the board. Cannot create agents directly; every hire and termination routes through an approval.",
       "permissions": { "canCreateAgents": false },
       "budgetMonthlyCents": 80000,
       "runtimeConfig": {
@@ -80,7 +100,7 @@
         "command": "sh",
         "args": ["-c", "echo legal heartbeat"]
       },
-      "capabilities": "Reviews contracts and compliance questions. The Course 7 envelope-extension hire. All contract interpretations that bind the company require board approval.",
+      "capabilities": "Reviews contracts and compliance questions. The Course 7 envelope-extension hire. All contract interpretations that bind the company require board approval. Reports to the CEO.",
       "permissions": { "canCreateAgents": false },
       "budgetMonthlyCents": 300000,
       "runtimeConfig": {
