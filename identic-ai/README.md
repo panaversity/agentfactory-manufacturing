@@ -10,7 +10,7 @@ You build an **Owner Identic AI**: a named OpenClaw delegate ("Claudia") that ac
 - `AGENTS.md` (`CLAUDE.md` imports it): the standing brief your agent reads. It carries the delegate engine (native OpenClaw), the workspace-placement runbook, the delegated-envelope schema, the Paperclip MCP wiring, the `governance-ledger` skill recipe (the one piece you build on top), and the safety rules.
 - `.mcp.json` / `opencode.json`: three MCP servers, all keyless against the local sandbox. Neon (the governance ledger), Context7 (verify the moving API surface), and the official Paperclip MCP (dormant until you start the local sandbox).
 - `.env.example`: copy to `.env`, add a model key. The local Paperclip sandbox and Neon are keyless.
-- `seed-company.json` + `course-seven-export/approvals.json`: your four Workers and your prior decision history. Your agent loads these into a local Paperclip sandbox so you can do the whole lab with no upstream deployment.
+- `seed-company.json` + `course-seven-export/approvals.json`: your company's own CEO and four Workers (the Workers report to the CEO), plus your prior decision history. Your agent loads these into a local Paperclip sandbox so you can do the whole lab with no upstream deployment.
 - `docs/governance-ledger-schema.sql`: the one table the course adds, plus the real Paperclip tables it joins against.
 
 ## Pick how you run Paperclip
