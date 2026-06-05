@@ -1,6 +1,6 @@
 {
   "note": "Your company, as a seed for the local Paperclip sandbox. The agent loads this so a reader with no Course 5-7 deployment has a gradable company on day one. Field shapes follow Paperclip's verified create bodies (POST /api/companies, then POST /api/companies/:id/agents). Confirm the exact field set against the running install's GET /api/adapters before posting (live-verified on v2026.529.0; the older GET /llms/agent-configuration/<adapterType>.txt route now 404s); Paperclip drifts. The company is led by its own CEO (the `ceo` role); the CEO and four Workers below run on the cheap no-LLM `process` adapter by default so the sandbox costs nothing to seed; switch a Worker to a local LLM adapter only when a scenario needs real reasoning. Heartbeats below ship OFF with wake-on-demand ON — the recommended 'on call, not ticking' default (an interval timer wakes a worker on a clock even when there is no work, and burns budget the moment a worker is switched to an LLM adapter). Note: `capabilities` is DESCRIPTIVE text, not an enforced limit. Paperclip enforces authority through grants/scope/approvals; in this course the delegated envelope enforces the refund bands, so the dollar figures in capabilities are the human-readable description, not a hard cap Paperclip checks.",
-  "seed_order": "Seed in THIS order — it matters. (1) Create the company: POST /api/companies (do NOT include requireBoardApprovalForNewAgents here; it is PATCH-only and is silently dropped from the create body). (2) Seed each worker: POST /api/companies/:id/agents (succeeds while the gate is off). (3) Turn the board gate ON: PATCH /api/companies/:id with { \"requireBoardApprovalForNewAgents\": true }. (4) VERIFY it is on: GET the company returns true, or a direct POST /agents now returns 409. Skip (3) or (4) and the sandbox is UNGOVERNED — the approval gate this whole course is about would be silently off, with no error to tell you.",
+  "seed_order": "Seed in THIS order — it matters. (1) Create the company: POST /api/companies (do NOT include requireBoardApprovalForNewAgents here; it is PATCH-only and is silently dropped from the create body). (2) Create the CEO FIRST and capture its id (POST /api/companies/:id/agents). (2b) Create each Worker and set its reportsTo to the CEO's id — at create if the body accepts it, otherwise PATCH /api/agents/:id afterward (the nested /companies/:id/agents/:id route 404s). The Workers' reportsTo field below is the SYMBOLIC name \"CEO\"; resolve it to the CEO's real id at seed time. The 'Reports to the CEO' line in each Worker's capabilities is DESCRIPTIVE only — reportsTo is the structural org-chart field. (2c) VERIFY the chart is connected: GET the agents; every Worker's reportsTo must resolve to the CEO. A reportsTo:null Worker is a silently orphaned chart, the same silent-failure shape as the board gate. (3) Turn the board gate ON: PATCH /api/companies/:id with { \"requireBoardApprovalForNewAgents\": true }. (4) VERIFY it is on: GET the company returns true, or a direct POST /agents now returns 409. Skip (2c), (3) or (4) and the sandbox is UNGOVERNED or DISCONNECTED — silently, with no error to tell you.",
   "company": {
     "name": "Your Customer Support Company",
     "description": "Respond to customer inquiries within 4 hours, with refund and budget decisions made consistently and within policy. You govern through an approval gate; this course delegates the routine slice of that gate to your Identic AI.",
@@ -35,6 +35,7 @@
       "name": "Tier-1 Support",
       "title": "Tier-1 Customer Support",
       "role": "general",
+      "reportsTo": "CEO",
       "adapterType": "process",
       "adapterConfig": {
         "command": "sh",
@@ -55,6 +56,7 @@
       "name": "Tier-2 Specialist",
       "title": "Tier-2 Support Specialist",
       "role": "general",
+      "reportsTo": "CEO",
       "adapterType": "process",
       "adapterConfig": {
         "command": "sh",
@@ -75,6 +77,7 @@
       "name": "Manager-Agent",
       "title": "Support Manager Agent",
       "role": "general",
+      "reportsTo": "CEO",
       "adapterType": "process",
       "adapterConfig": {
         "command": "sh",
@@ -95,6 +98,7 @@
       "name": "Legal Specialist",
       "title": "Legal and Contract Specialist",
       "role": "general",
+      "reportsTo": "CEO",
       "adapterType": "process",
       "adapterConfig": {
         "command": "sh",
