@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "principal": "owner_identic_ai",
+  "acting_on_behalf_of": "<owner-human paperclip user id>",
+  "company_id": "<live company id, filled by setup>",
+  "auto_resolve": [
+    {
+      "type": "refund",
+      "max_amount_cents": 200000,
+      "require": { "prior_refunds_6mo_max": 0, "min_account_age_days": 180 },
+      "action": "approve"
+    },
+    {
+      "type": "budget_override",
+      "max_overage_pct": 20,
+      "action": "approve"
+    }
+  ],
+  "always_surface": [
+    "any refund above max_amount_cents or failing a require clause",
+    "any hire or termination (a strategic moment the owner wants to see)",
+    "any policy change or first-of-its-kind call",
+    "anything not matched by an auto_resolve rule"
+  ],
+  "dry_run": true,
+  "_note": "The setup step copies this to ~/.openclaw/governance/delegated-envelope.json and fills acting_on_behalf_of + company_id with the live values. dry_run true is the confidence period: Claudia reads the real queue and reasons, but posts nothing and writes nothing to the production ledger until the owner flips it off. decide.mjs re-validates every act against this envelope in code (the hard backstop)."
+}

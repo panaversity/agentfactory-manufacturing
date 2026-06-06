@@ -117,10 +117,155 @@
     }
   ],
   "demo_approval_flood": {
-    "note": "Decision 6 seeds a flood of pending approvals so Claudia can auto-clear the routine band and surface the consequential ones. Generate these as real Paperclip approvals (POST /api/companies/:id/approvals) at run time, modeled on the bands in course-seven-export/approvals.json. A reasonable demo flood: ~15 refunds spread across the bands you clear fast (small duplicate-charge and billing-error refunds), 2-3 that sit outside the delegated envelope (a large refund on a new account with prior refunds; a budget override above the delegated cap), so the surfaced set is non-empty. MAP the domain names to Paperclip's real approval `type` enum when you POST: a refund -> `request_board_approval` (put the refund amount/context in `payload`); a budget override -> `budget_override_required`; a hire -> `hire_agent`. There is no `refund`/`hire`/`termination` approval type — posting those verbatim fails server validation. course-seven-export/approvals.json uses the friendly domain names for the judgment seed; translate them here.",
-    "suggested_counts": {
-      "routine_inside_envelope": 15,
-      "consequential_to_surface": 3
-    }
+    "note": "Mode A: this is the REAL work Claudia's heartbeat handles. POST each item below as a pending Paperclip approval (POST /api/companies/:id/approvals) at run time, then wait for a wake (or trigger one with `openclaw cron run <id> --wait`). Her loop runs `decide.mjs --scan`, which re-validates each item against the delegated envelope IN CODE (the hard backstop). The payload field names below MATCH exactly what decide.mjs reads: refunds use `amount_cents` / `account_age_days` / `prior_refunds_6mo`; budget overrides use `requested_overage_pct`. The envelope clears refunds with amount_cents <= 200000 AND account_age_days >= 180 AND prior_refunds_6mo = 0, and budget overrides with requested_overage_pct <= 20; everything else surfaces. Hires are ALWAYS surfaced regardless of payload (type `hire_agent`). The `type` values here are Paperclip's real enum (`request_board_approval` for refunds, `budget_override_required`, `hire_agent`); the friendly domain names live only in course-seven-export/approvals.json for the judgment seed. Composition below: 10 refunds (7 inside the envelope she clears, 3 that must surface), 2 hires (always surface), 1 budget override inside the cap she clears, 1 budget override over the cap that surfaces.",
+    "expected_dispositions": {
+      "auto_cleared_inside_envelope": 8,
+      "surfaced_to_owner": 6,
+      "note": "8 cleared = 7 in-band refunds + 1 in-cap budget override. 6 surfaced = 3 out-of-band refunds + 2 hires + 1 over-cap budget override. In dry_run, the same classification is logged as intent and nothing is posted."
+    },
+    "approvals_to_post": [
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 4900,
+          "account_age_days": 540,
+          "prior_refunds_6mo": 0,
+          "reason": "Duplicate charge, single SKU. Long-tenure account."
+        },
+        "_band": "inside"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 12500,
+          "account_age_days": 410,
+          "prior_refunds_6mo": 0,
+          "reason": "Billing error on annual plan proration."
+        },
+        "_band": "inside"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 29900,
+          "account_age_days": 365,
+          "prior_refunds_6mo": 0,
+          "reason": "Service outage credit, first time."
+        },
+        "_band": "inside"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 7500,
+          "account_age_days": 220,
+          "prior_refunds_6mo": 0,
+          "reason": "Accidental upgrade, reversed same day."
+        },
+        "_band": "inside"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 99900,
+          "account_age_days": 800,
+          "prior_refunds_6mo": 0,
+          "reason": "Downgrade credit, established customer, well under ceiling."
+        },
+        "_band": "inside"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 15000,
+          "account_age_days": 190,
+          "prior_refunds_6mo": 0,
+          "reason": "Mis-billed add-on. Account just past the 180-day line."
+        },
+        "_band": "inside"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 199900,
+          "account_age_days": 900,
+          "prior_refunds_6mo": 0,
+          "reason": "Annual plan cancellation within grace window. Right at the ceiling."
+        },
+        "_band": "inside"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 250000,
+          "account_age_days": 700,
+          "prior_refunds_6mo": 0,
+          "reason": "Enterprise overpayment $2,500. OVER the $2,000 ceiling; must surface."
+        },
+        "_band": "surface_over_ceiling"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 60000,
+          "account_age_days": 45,
+          "prior_refunds_6mo": 0,
+          "reason": "Large refund on a 45-day-old account; under min age; must surface."
+        },
+        "_band": "surface_young_account"
+      },
+      {
+        "type": "request_board_approval",
+        "payload": {
+          "kind": "refund",
+          "amount_cents": 35000,
+          "account_age_days": 600,
+          "prior_refunds_6mo": 2,
+          "reason": "Third refund in 6 months; priors over max; must surface."
+        },
+        "_band": "surface_prior_refunds"
+      },
+      {
+        "type": "hire_agent",
+        "payload": {
+          "role": "Spanish-language Tier-2 Specialist",
+          "reason": "CEO proposes a hire: Spanish-language ticket volume now exceeds the workforce's coverage."
+        },
+        "_band": "surface_hire"
+      },
+      {
+        "type": "hire_agent",
+        "payload": {
+          "role": "Support Data Analyst",
+          "reason": "CEO proposes a hire: no one owns refund-pattern and SLA reporting; a capability gap."
+        },
+        "_band": "surface_hire"
+      },
+      {
+        "type": "budget_override_required",
+        "payload": {
+          "requested_overage_pct": 12,
+          "reason": "Tier-2 ran 12% over its monthly budget clearing a backlog. Inside the 20% cap."
+        },
+        "_band": "inside_budget"
+      },
+      {
+        "type": "budget_override_required",
+        "payload": {
+          "requested_overage_pct": 35,
+          "reason": "Legal Specialist projects 35% over budget this month. OVER the 20% cap; must surface."
+        },
+        "_band": "surface_over_cap"
+      }
+    ]
   }
 }
