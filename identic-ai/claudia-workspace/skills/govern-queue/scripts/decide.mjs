@@ -7,9 +7,16 @@
 // of the LLM's reasoning — that is the whole point of a backstop.
 //
 // Modes:
-//   node decide.mjs --scan                 # every PENDING approval, decide each
+//   node decide.mjs --scan                 # every PENDING approval, decide each, then brief the owner
 //   node decide.mjs --approval <id>        # one approval by id
+//   node decide.mjs --brief-only           # compose + send a brief from the ledger, decide nothing
 //   node decide.mjs --selfcheck            # prove the backstop refuses out-of-envelope
+//
+// The brief is the chief-of-staff payoff: after a --scan pass she does not just
+// govern the queue, she ALSO pushes the owner a short plain-language summary of
+// the pass (cleared N for $X, M need you with the titles, the company in a line).
+// --brief-only sends that summary without re-deciding, so a standing daily-brief
+// cron can call it on its own schedule.
 //
 // Disposition per item:
 //   posted    — inside the envelope, not dry_run: signed + posted to the board + ledger row
@@ -147,6 +154,81 @@ function messageOwner(text) {
   log(`  -> OWNER: ${text}`);
 }
 
+// ---- the wake brief (the chief-of-staff payoff) ----------------------------
+//
+// composeBrief turns THIS pass's results into one short, plain, owner-facing
+// line: what she cleared (count + dollars), what needs the owner (count + the
+// actual titles/amounts), what she refused, and the company in a sentence. It
+// is a real function of the pass tally + the items she surfaced, never a canned
+// string: change the pass and the brief changes with it. messageOwner pushes it
+// to the paired chat channel, the same path a surfaced item goes out on.
+
+function dollars(cents) {
+  return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
+// A short, human label for a surfaced item, drawn from its real fields so the
+// brief names what it actually is (a hire, an over-limit refund) not just an id.
+function briefTitle(item) {
+  const a = item.approval || {};
+  const p = a.payload || {};
+  const explicit = a.title || p.title || p.summary;
+  if (explicit) return String(explicit);
+  const type = a.type || "approval";
+  if (type === "hire_agent") {
+    const role = p.role || p.title || p.language || p.skill;
+    return role ? `hire (${role})` : "hire";
+  }
+  if (type === "terminate_agent") return "termination";
+  if (type === "approve_ceo_strategy") return "CEO strategy";
+  const amt = p.amount_cents ?? p.amountCents;
+  if (p.kind === "refund" || type === "request_board_approval") {
+    return amt != null ? `${dollars(amt)} refund` : "refund";
+  }
+  if (p.kind === "budget_override" || type === "budget_override_required") {
+    const pct = p.requested_overage_pct ?? p.requestedOveragePct;
+    return pct != null ? `budget override (${pct}%)` : "budget override";
+  }
+  return type.replace(/_/g, " ");
+}
+
+// One-line read on company health from the pass shape. Honest and terse: only
+// claims "healthy" when nothing was refused and the surfaced load is light.
+function companyState(tally, surfacedCount) {
+  if (tally.refused > 0) return "A few items hit the rails and were refused; worth a look.";
+  if (surfacedCount === 0) return "Nothing needs you. Company looks healthy.";
+  if (surfacedCount <= 3) return "Routine handled; a couple of calls are yours. Company looks healthy.";
+  return "Routine handled; a handful need your eye.";
+}
+
+// Compose the wake brief. `tally` is the pass dispositions; `surfacedItems` is
+// the list of items she surfaced this pass (each { approval, reason, amount_cents }).
+function composeBrief(tally, surfacedItems, env) {
+  const clearedCents = (surfacedItems.__clearedCents) || 0;
+  const cleared = tally.posted || 0;
+  const surfaced = surfacedItems.length;
+  const refused = tally.refused || 0;
+
+  const parts = [];
+  if (cleared > 0) {
+    parts.push(`cleared ${cleared} routine (${dollars(clearedCents)})`);
+  } else {
+    parts.push("cleared 0 routine");
+  }
+
+  if (surfaced > 0) {
+    const titles = surfacedItems.map(briefTitle).join("; ");
+    parts.push(`${surfaced} need you: ${titles}`);
+  } else {
+    parts.push("nothing needs you");
+  }
+
+  if (refused > 0) parts.push(`${refused} refused at the rails`);
+
+  const dry = env.dry_run === true ? " [dry-run: nothing was actually posted]" : "";
+  return `Heartbeat brief: ${parts.join(", ")}. ${companyState(tally, surfaced)}${dry}`;
+}
+
 // ---- the envelope classifier (the HARD BACKSTOP) ---------------------------
 //
 // Returns { decision: 'auto'|'surface', reason, action }.
@@ -263,7 +345,7 @@ async function act(approval, env) {
       attestation_b64: null,
       canonical_payload: null,
     });
-    return "surfaced";
+    return { disposition: "surfaced", approval, reason: cls.reason, amount_cents: cls.amount_cents ?? null };
   }
 
   // ---- AUTO path: re-validate, sign, gate, then post -----------------------
@@ -272,7 +354,7 @@ async function act(approval, env) {
   // 'auto', refuse. (Belt and suspenders against a caller mutating state.)
   if (cls.decision !== "auto") {
     log(`  BACKSTOP: refusing non-auto item`);
-    return "refused";
+    return { disposition: "refused", approval, reason: cls.reason, amount_cents: cls.amount_cents ?? null };
   }
 
   // Gate 2 prep: sign the canonical decision payload.
@@ -286,7 +368,7 @@ async function act(approval, env) {
       rationale: `signing gate failed: ${signed.error}`, dry_run: false,
       public_fingerprint: null, attestation_b64: null, canonical_payload: null,
     });
-    return "refused";
+    return { disposition: "refused", approval, reason: `signing gate failed`, amount_cents: cls.amount_cents ?? null };
   }
 
   // Gate 2 verify: signature must verify against the public key.
@@ -299,13 +381,13 @@ async function act(approval, env) {
       rationale: "signature did not verify against public key", dry_run: false,
       public_fingerprint: signed.fingerprint, attestation_b64: null, canonical_payload: null,
     });
-    return "refused";
+    return { disposition: "refused", approval, reason: "signature did not verify", amount_cents: cls.amount_cents ?? null };
   }
 
   // dry_run: log intent, post NOTHING, write NOTHING to the production ledger.
   if (env.dry_run === true) {
     log(`  DRY-RUN: would ${cls.action} ${id} (${cls.reason}). Nothing posted, nothing logged.`);
-    return "dry_run";
+    return { disposition: "dry_run", approval, reason: cls.reason, amount_cents: cls.amount_cents ?? null };
   }
 
   // Post the decision via the board path.
@@ -320,7 +402,7 @@ async function act(approval, env) {
       rationale: `board post failed: ${e.message}`, dry_run: false,
       public_fingerprint: signed.fingerprint, attestation_b64: signed.signature, canonical_payload: null,
     });
-    return "refused";
+    return { disposition: "refused", approval, reason: `board post failed`, amount_cents: cls.amount_cents ?? null };
   }
 
   const ledgerId = recordRow({
@@ -332,7 +414,7 @@ async function act(approval, env) {
     canonical_payload: JSON.stringify(basePayload),
   });
   log(`  POSTED + signed + logged (ledger ${ledgerId})`);
-  return "posted";
+  return { disposition: "posted", approval, reason: cls.reason, amount_cents: cls.amount_cents ?? null };
 }
 
 // ---- selfcheck: prove the backstop refuses out-of-envelope -----------------
@@ -392,15 +474,53 @@ async function main() {
     const pending = await listPending(env);
     log(`scan: ${pending.length} pending approvals for company ${companyId(env)} (dry_run=${env.dry_run === true})`);
     const tally = { posted: 0, surfaced: 0, refused: 0, dry_run: 0 };
+    const surfacedItems = [];
+    let clearedCents = 0;
     for (const a of pending) {
       const r = await act(a, env);
-      tally[r] = (tally[r] || 0) + 1;
+      tally[r.disposition] = (tally[r.disposition] || 0) + 1;
+      if (r.disposition === "surfaced") surfacedItems.push(r);
+      if (r.disposition === "posted") clearedCents += Number(r.amount_cents || 0);
     }
     log(`\nscan complete: ${JSON.stringify(tally)}`);
+
+    // The brief: after governing the queue, push the owner a one-line summary of
+    // THIS pass. Composed from the real tally + the items she surfaced, then sent
+    // on the same owner channel surfaced items go out on.
+    surfacedItems.__clearedCents = clearedCents;
+    const brief = composeBrief(tally, surfacedItems, env);
+    messageOwner(brief);
     return;
   }
 
-  console.error("decide: pass --scan, --approval <id>, or --selfcheck");
+  if (process.argv.includes("--brief-only")) {
+    // Compose + send a brief WITHOUT deciding anything. For a standing daily-brief
+    // cron: it reads the current pending queue, classifies each item to know what
+    // WOULD clear vs surface, and sends the one-line summary. It posts nothing,
+    // signs nothing, and writes no ledger row; --scan remains the only path that
+    // acts. Cleared-dollar total here is the in-envelope sum currently pending.
+    const pending = await listPending(env);
+    const tally = { posted: 0, surfaced: 0, refused: 0, dry_run: 0 };
+    const surfacedItems = [];
+    let clearedCents = 0;
+    for (const a of pending) {
+      const cls = classify(a, env);
+      if (cls.decision === "auto") {
+        tally.posted += 1;
+        clearedCents += Number(cls.amount_cents || 0);
+      } else {
+        tally.surfaced += 1;
+        surfacedItems.push({ disposition: "surfaced", approval: a, reason: cls.reason, amount_cents: cls.amount_cents ?? null });
+      }
+    }
+    surfacedItems.__clearedCents = clearedCents;
+    const brief = composeBrief(tally, surfacedItems, env);
+    messageOwner(brief);
+    log(`\nbrief-only complete: nothing decided, brief sent.`);
+    return;
+  }
+
+  console.error("decide: pass --scan, --approval <id>, --brief-only, or --selfcheck");
   process.exit(1);
 }
 

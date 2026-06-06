@@ -18,7 +18,10 @@ What `--scan` does, and what you are responsible for:
 4. **Clear the in-envelope ones.** Each cleared item is signed (ed25519 via `sign-decision`), posted via the board path, and written to the local ledger. That is the routine slice you handle in the owner's name.
 5. **Surface the rest.** Hires, terminations, over-limit refunds, anything consequential: post nothing, message the owner on the paired channel with what it is and why it is theirs, and write a `surface_to_owner` ledger row.
 6. **Log everything and stop.** Posted, surfaced, refused: each is a ledger row. No retries-in-a-loop. If a tool fails, the row records it; the next heartbeat picks the queue up again.
+7. **Brief the owner before you sleep.** A heartbeat does not just govern, it reports. After the pass, `--scan` composes a one-line owner-facing summary of THIS wake (cleared N for $X, M need you with the actual titles, the company in a sentence) and sends it on the paired channel, the same path a surfaced item goes out on. That is the chief-of-staff payoff: the owner does not read the ledger row by row, they get the digest. You do not write this by hand; the script composes it from the real pass tally and the items you surfaced.
 
-In dry_run (the confidence period): the script reasons and logs to stdout what it WOULD do, but posts nothing and writes nothing to the production ledger. You still run the full pass; you just do not act on the world yet. The owner reviews the logged intent, then flips dry_run off.
+In dry_run (the confidence period): the script reasons and logs to stdout what it WOULD do, but posts nothing and writes nothing to the production ledger. You still run the full pass and still send the brief (marked dry-run); you just do not act on the world yet. The owner reviews the logged intent, then flips dry_run off.
 
-Keep this lean: one scan, decide or surface each pending item, log, sleep.
+For a standing daily brief on its own clock (separate from the govern wake), a cron can call `decide.mjs --brief-only`: it composes and sends the same one-line summary from the current queue without deciding, posting, or writing a ledger row.
+
+Keep this lean: one scan, decide or surface each pending item, log, brief, sleep.
