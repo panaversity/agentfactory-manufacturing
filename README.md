@@ -6,6 +6,7 @@ Each folder here is the **base** for one crash course: rules files, MCP wiring, 
 
 | Course                           | Folder                                                | Download                                                                                              |
 | -------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| RAG on Postgres (pgvector)       | [`postgres-ai/`](postgres-ai)                         | [`postgres-ai-base.zip`](../../releases/latest/download/postgres-ai-base.zip)                         |
 | Digital FTE                      | [`digital-fte/`](digital-fte)                         | [`digital-fte-base.zip`](../../releases/latest/download/digital-fte-base.zip)                         |
 | AI Agent Nervous System          | [`ai-agent-nervous-system/`](ai-agent-nervous-system) | [`ai-agent-nervous-system-base.zip`](../../releases/latest/download/ai-agent-nervous-system-base.zip) |
 | Workforce with Paperclip         | [`paperclip-workforce/`](paperclip-workforce)         | [`paperclip-workforce-base.zip`](../../releases/latest/download/paperclip-workforce-base.zip)         |

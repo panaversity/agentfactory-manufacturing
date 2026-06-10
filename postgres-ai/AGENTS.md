@@ -1,0 +1,108 @@
+# Postgres-AI (RAG) base: the brief your general agent builds from
+
+You build; the human directs and verifies. Write the code, run it, show the command and its output, and prove each step before the next. Past tense means it ran and you saw the result.
+
+You are a **general agent** (Claude Code, OpenCode, or similar): you do the database work, the embedding worker, the search and RAG code, the MCP wiring, and the verification, not just code generation. Drive the whole build from this brief plus the prompts the human pastes.
+
+**Course:** the human works through this course page, pasting build prompts you execute and verify: https://agentfactory.panaversity.org/docs/postgres-ai-crash-course
+
+**Read the lesson when a build prompt arrives, and never ask which part the human is on.** Setup (skills, `.env`, MCP, restart) needs no lesson, so don't fetch anything yet. The moment the human pastes a _build_ prompt, the part is obvious from the prompt: a `quotes` table with a companion embedding table and a top-k search is Part 2 (your first RAG); an HNSW index with `ef_search` tuning and `EXPLAIN ANALYZE` is Part 3; an eval set, a `WHERE` filter, or RRF hybrid search is Part 4; "build a RAG over my `./docs` folder end to end" is the Part 5 worked example; a FastMCP server exposing `search_knowledge`/`answer_question` is Part 6. Infer it, fetch just that section of the course page, read it, then plan. Read only the section you need; this brief is the durable contract, the page is the step's detail. No web-fetch tool? Say so once and work from this brief plus the prompt.
+
+The human is a learner, not a client: plan before you build, explain in plain language, move one concept at a time, and prefer the simplest honest thing that works, naming what a heavier choice buys when you reach for it. The course prompts are short on purpose; this brief is the context that lets them stay short.
+
+This folder is a bare base, not a project: no `src/`, no pinned dependencies, no corpus. You construct everything on top of it. Confirm any pgvector, FastMCP, OpenAI embeddings, or Neon MCP API through **Context7** before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
+
+## What you are building
+
+Searchable context for an application's AI: **RAG (retrieval-augmented generation) on Postgres**, built on Neon, where the vectors live next to the rows they describe so a similarity search and a `WHERE` filter run in one query, on one source of truth.
+
+The pipeline, in five moves the human assembles across the course: **source rows -> chunk -> embed (off the database) -> store vectors in a companion table -> search by meaning, then generate a grounded answer.**
+
+End state: a working RAG repo on a Neon `dev` branch with pgvector enabled, holding a source table plus a companion embeddings table, an **embedding worker** that keeps the vectors in sync, a semantic-search query (cosine `<=>`), an `answer_question()` function that retrieves then generates, a small eval set that says whether a change helped, and (optionally, Part 6) a **FastMCP server** that exposes the retrieval as read-only tools any agent can call.
+
+## Prep the base (the human pastes one prompt; you run the steps)
+
+- **Install the skills.** Run, in this folder:
+
+  ```
+  npx skills add https://github.com/neondatabase/agent-skills --skill neon-postgres --agent claude-code -y
+  npx skills add https://github.com/anthropics/skills --skill mcp-builder --agent claude-code -y
+  ```
+
+  `neon-postgres` carries the pgvector and Neon-branch know-how this course leans on; `mcp-builder` is for the Part 6 RAG server. This installs into `.claude/skills/`, which OpenCode reads too, so one install serves both tools.
+
+- **Set up the key.** Copy `.env.example` to `.env`; the human pastes their `OPENAI_API_KEY` (one key covers both embeddings and generation). Never write the key yourself, never echo it.
+
+- **Bring the MCP servers online.** Neon and Context7 are already declared in `.mcp.json` (Claude Code) and `opencode.json` (OpenCode); you do not configure them. Neon authorizes over **OAuth**, and the tool opens the browser itself: the first time it reaches the Neon server (or at the startup trust prompt) a browser window opens. Tell the human to sign in, or sign up free at neon.com, and click Authorize. No command, no key. Do not walk them through `/mcp`; that is only the fallback if no window opens on its own. Context7 is keyless.
+
+- **Then have the human restart you.** Newly installed skills and freshly wired MCP servers do not load mid-session. Ask the human to exit and relaunch (`claude` or `opencode`) in this folder, then confirm the boundary: list the Neon tools you can see. No tools means Neon is not authorized yet, or the restart has not happened.
+
+## The two planes (keep them straight)
+
+This is the mental model the whole course rests on:
+
+- **Build plane: the Neon MCP server.** How _you_ create the project, open a `dev` branch, enable pgvector, run and preview migrations, and inspect tables, all in plain English. It is dev-time only: Neon's own guidance is that the MCP server is for development and testing, never wired into a running app or exposed to end users.
+- **Runtime plane: your application code.** The embedding worker and the RAG app (and, in Part 6, the FastMCP server) reach Neon over its **connection string**, never through Neon MCP. Fetch the branch connection string once (`get_connection_string`) and write it to `.env` as `DATABASE_URL`; the worker and app read it there.
+
+The embedding call and the generation call both live in the runtime plane (app code), never inside the database. A stateful system of record must not depend on a volatile external API, so embedding and LLM calls fail, retry, and scale in app code, off Neon.
+
+## The architecture you construct
+
+### Schema (vectors next to your data)
+
+A source table (the human-readable rows) plus a **companion embeddings table** holding each chunk and its vector with a foreign key back to the source. Keep vectors in their own table, not a column on the source row, so one long source row can produce several chunks.
+
+Embedding contract (must hold end to end): model `text-embedding-3-small`, dimension `vector(1536)`, cosine distance (`<=>`), HNSW index (`vector_cosine_ops`). The column dimension and the embedding model must match on insert and on query, or results are nonsense. pgvector's HNSW/IVFFlat cap the `vector` type at 2000 dimensions; a larger model (for example `text-embedding-3-large`, 3072) needs `halfvec` (to 4000) or reduced dimensions before it can be indexed.
+
+### The embedding worker (the part pgvector does not hand you)
+
+A short program that runs **off** Neon: it finds rows with no current embedding, chunks their text, calls the embedding model, and writes the vectors into the companion table. The _same_ code is the one-off backfill and the scheduled sync job. The database never calls the embedding API; if you want change-driven updates, a trigger may _mark_ a row dirty, but the embed call still happens out-of-band in the worker. This is what keeps stale embeddings (the quiet RAG killer) from accumulating while never blocking a write on a slow endpoint.
+
+Chunking is the lever that sets the recall ceiling: a few hundred tokens with about 10-20% overlap is a starting point, and for structured docs you split on headings. Tune it against the eval set, not by guessing.
+
+### Semantic search and RAG
+
+Search orders by distance: `ORDER BY embedding <=> $1 LIMIT k`, with the query phrase embedded in app code and passed as `$1`. Never embed inside the SQL. RAG is two stages and the split is the point: **retrieve in Postgres** (fast, filterable) and **generate in your app** (you own the prompt, model, retries, streaming). `answer_question(question)` embeds the question, runs the top-k search, formats the chunks into a prompt with the question, calls the LLM, and returns the grounded answer.
+
+### Indexes (Part 3, add when search is actually slow)
+
+Below roughly 100k vectors, exact search is often fast enough and always correct, so benchmark before adding an index. When you add one, HNSW is the default on Neon (`USING hnsw (embedding vector_cosine_ops)`). The index operator must match the query operator (`vector_cosine_ops` with `<=>`) or the index is silently ignored. The one query-time knob is `ef_search` (higher means more recall and slower); tune it to the recall the human needs, do not blindly max it. Confirm the index is used with `EXPLAIN ANALYZE`: an Index Scan, not a Seq Scan.
+
+### Making search good (Part 4)
+
+- **Eval-driven:** before tuning, write about 10 real questions to a file; re-run them on every change and read the effect. When an answer is bad, trace retrieval -> context -> generation; it is retrieval about 9 times in 10.
+- **Filtered search:** because vectors sit next to the data, "most similar rows that also satisfy X" is a `WHERE` on the same query; pair HNSW with ordinary B-tree indexes on the filter columns.
+- **Hybrid search:** keyword (`tsvector`) and vector, fused with Reciprocal Rank Fusion (merge by rank position, not score). Measure vector-only vs hybrid on the eval set before taking on the moving parts.
+- **Multi-tenancy:** enforce isolation in the database with Row-Level Security, never a hoped-for `WHERE` in app code.
+
+### The RAG MCP server (Part 6, optional)
+
+A **FastMCP** server exposing read-only retrieval, `search_knowledge(query, limit)` and `answer_question(question)`, so any agent can call it. Build it with `mcp-builder`. It connects with a **read-only** database role, uses parameterized queries (the same bound `$1` as the search query), reads the **pooled** connection string, and never exposes `run_sql`. The docstring is the interface: write it for the calling agent. This is the product surface; the Neon MCP server is not. Never hand the Neon admin server to end users.
+
+## Rules that prevent silent failures
+
+- **Migrate on a branch.** `prepare_database_migration` opens a temporary branch; `complete_database_migration` merges it. Never run untested DDL against the default branch. Branch freely for index benchmarks and eval runs, then throw the branch away.
+- **Neon MCP is build-plane only.** Never wire `mcp.neon.tech` into the worker, the RAG app, or the Part 6 MCP server. Those reach Neon over `DATABASE_URL`.
+- **The worker runs off Neon, and the database never calls the embedding API.** Embedding and generation are app-layer calls.
+- **Match the embedding model and the column dimension** on insert and query, and **register pgvector** on any connection that reads or writes the `embedding` column (`register_vector`), or vectors read and write corrupt silently.
+- **The index operator must match the query operator** (`vector_cosine_ops` with `<=>`). Confirm with `EXPLAIN ANALYZE` before calling indexing done.
+- **Retrieval at runtime is read-only.** The Part 6 server uses a role that cannot write; the query text is always a bound parameter, never string-concatenated into SQL.
+- **Keys from `.env`, never in SQL, code, or the repo.** Read `OPENAI_API_KEY` from the environment. Before any paid-model call, confirm it is set; if not, stop and ask the human.
+- **Confirm the API surface through Context7 before writing it.** pgvector operators, the FastMCP decorator and run API, the OpenAI embeddings call, and the Neon MCP tool names move; this brief is today's known-good, not a permanent spec.
+
+## Verification (what "done" means at each layer)
+
+- **Schema:** the `vector` extension enabled on the branch; the source table and the companion embeddings table present; for Part 3, the HNSW index present.
+- **Embeddings:** the embedding row count matches the chunk count of the source corpus; one embedding model only.
+- **Search:** a phrase returns semantically near rows (the classic check: a phrase that shares no words with the stored text still retrieves it).
+- **RAG:** `answer_question()` grounds its answer in the retrieved chunks, and shows which chunks it used.
+- **Index (Part 3):** `EXPLAIN ANALYZE` shows an Index Scan, not a Seq Scan, on the same data.
+- **MCP (Part 6):** the agent lists exactly `search_knowledge` and `answer_question`; no `run_sql`; the database role is read-only.
+
+## Keys
+
+`OPENAI_API_KEY` from `.env`, never in code or logs; one key covers embeddings and generation. Neon authorizes over OAuth, so no Neon key lives here; Context7 runs keyless. Before any paid-model call, confirm `OPENAI_API_KEY` is set; if it is not, stop and ask the human.
+
+## Sourcing
+
+When you state something that comes only from this file, cite it as "per AGENTS.md" so the human knows the source. When Context7 disagrees with this file, Context7 wins. This brief is today's known-good, not a permanent spec.
