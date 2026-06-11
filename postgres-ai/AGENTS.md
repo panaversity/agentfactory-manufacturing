@@ -10,7 +10,7 @@ You are a **general agent** (Claude Code, OpenCode, or similar): you do the data
 
 The human is a learner, not a client: plan before you build, explain in plain language, move one concept at a time, and prefer the simplest honest thing that works, naming what a heavier choice buys when you reach for it. The course prompts are short on purpose; this brief is the context that lets them stay short.
 
-This folder is a bare base, not a project: no `src/`, no pinned dependencies, no corpus. You construct everything on top of it. Confirm any pgvector, FastMCP, OpenAI embeddings, or Neon MCP API through **Context7** before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
+This folder is a bare base, not a project: no `src/`, no pinned dependencies, no corpus. You construct everything on top of it. All the Python you build (the embedding worker, the search and RAG code, the evals, the Part 6 server) is one **uv-managed project** you create on first need; see _The Python project (uv)_ below. Confirm any pgvector, FastMCP, OpenAI embeddings, or Neon MCP API through **Context7** before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
 
 ## What you are building
 
@@ -47,6 +47,16 @@ This is the mental model the whole course rests on:
 The embedding call and the generation call both live in the runtime plane (app code), never inside the database. A stateful system of record must not depend on a volatile external API, so embedding and LLM calls fail, retry, and scale in app code, off Neon.
 
 ## The architecture you construct
+
+### The Python project (uv)
+
+All the runtime-plane code is one Python project managed by **uv** (the Python project and dependency manager). The base ships no project, so the first time a build prompt needs app code (the embedding worker in Part 2), create it once and then never reach for bare `pip` or a system `python` again:
+
+- **Create once.** Run `uv init` in this folder, which writes `pyproject.toml` and uses a local `.venv` (already gitignored). One project serves the whole course: the worker, the search and RAG code, the evals, and the Part 6 server all live in it. If a later prompt asks again whether this is a uv project, confirm the existing one rather than re-initializing.
+- **Add every dependency with `uv add`,** never `pip install`: `uv add openai asyncpg pgvector` for the worker, `uv add fastmcp` for the Part 6 server. This pins them in `pyproject.toml` and `uv.lock`, so the project stays reproducible for anyone who clones it.
+- **Run every script and command with `uv run`,** so it uses the project's environment: `uv run python worker.py`, and the Part 6 server registers as `uv run server.py`. A bare `python worker.py` runs outside the project and misses its dependencies.
+
+uv is the standing convention here whether or not a given prompt names it. The course prompts still say "set this folder up as a uv project" as reinforcement; treat that as confirmation of this rule, not a new instruction.
 
 ### Schema (vectors next to your data)
 
@@ -87,6 +97,7 @@ A **FastMCP** server exposing read-only retrieval, `search_knowledge(query, limi
 - **Match the embedding model and the column dimension** on insert and query, and **register pgvector** on any connection that reads or writes the `embedding` column (`register_vector`), or vectors read and write corrupt silently.
 - **The index operator must match the query operator** (`vector_cosine_ops` with `<=>`). Confirm with `EXPLAIN ANALYZE` before calling indexing done.
 - **Retrieval at runtime is read-only.** The Part 6 server uses a role that cannot write; the query text is always a bound parameter, never string-concatenated into SQL.
+- **One uv project; never bare `pip` or `python`.** All app code is a single `uv`-managed project (`uv init` once, on first need). Add dependencies with `uv add` and run everything with `uv run`; a bare `pip install` or `python script.py` escapes the project's environment and quietly breaks reproducibility. See _The Python project (uv)_ above.
 - **Keys from `.env`, never in SQL, code, or the repo.** Read `OPENAI_API_KEY` from the environment. Before any paid-model call, confirm it is set; if not, stop and ask the human.
 - **Confirm the API surface through Context7 before writing it.** pgvector operators, the FastMCP decorator and run API, the OpenAI embeddings call, and the Neon MCP tool names move; this brief is today's known-good, not a permanent spec.
 
