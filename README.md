@@ -33,6 +33,8 @@ The `worked-examples/` folder holds the **finished build** for a course, for aft
 
 Add a folder with the base files (copy an existing one, adjust `AGENTS.md`'s skill list and `.mcp.json` if the course needs another server). On the next `v*` tag, CI builds `<folder>-base.zip` and attaches it to the Release.
 
+For how a base takes a model credential (free-by-default Gemini, one provider-named key, the agent proves it at setup), follow [`MODEL-PROVIDER-STANDARD.md`](MODEL-PROVIDER-STANDARD.md). `postgres-ai` is the reference implementation.
+
 ## License
 
 Apache-2.0.

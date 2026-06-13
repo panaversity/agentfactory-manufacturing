@@ -10,7 +10,7 @@ You are a **general agent** (Claude Code, OpenCode, or similar): you do the data
 
 The human is a learner, not a client: plan before you build, explain in plain language, move one concept at a time, and prefer the simplest honest thing that works, naming what a heavier choice buys when you reach for it. The course prompts are short on purpose; this brief is the context that lets them stay short.
 
-This folder is a bare base, not a project: no `src/`, no pinned dependencies, no corpus. You construct everything on top of it. All the Python you build (the embedding worker, the search and RAG code, the evals, the Part 6 server) is one **uv-managed project** you create on first need; see _The Python project (uv)_ below. Confirm any pgvector, FastMCP, OpenAI embeddings, or Neon MCP API through **Context7** before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
+This folder is a bare base, not a project: no `src/`, no pinned dependencies, no corpus. You construct everything on top of it. All the Python you build (the embedding worker, the search and RAG code, the evals, the Part 6 server) is one **uv-managed project** you create on first need; see _The Python project (uv)_ below. Confirm any pgvector, FastMCP, `openai`-library, or Neon MCP API through **Context7** before you write it. This file pins no versions; when Context7 disagrees with it, Context7 wins.
 
 ## What you are building
 
@@ -31,7 +31,21 @@ End state: a working RAG repo on a Neon `dev` branch with pgvector enabled, hold
 
   `neon-postgres` carries the pgvector and Neon-branch know-how this course leans on; `mcp-builder` is for the Part 6 RAG server. This installs into `.claude/skills/`, which OpenCode reads too, so one install serves both tools.
 
-- **Set up the key.** Copy `.env.example` to `.env`; the human pastes their `OPENAI_API_KEY` (one key covers both embeddings and generation). Never write the key yourself, never echo it.
+- **Set up the key, and prove it works. This is where new learners stall, so make it painless.** Copy `.env.example` to `.env`. **This course runs free on Google Gemini, so default everyone there** unless they say they already prefer OpenAI. In plain words: "This course is free to run. Open https://aistudio.google.com/apikey, sign in with Google, click Create API key, copy it, and paste it here." Write that value to `.env` as `GEMINI_API_KEY`. Never write the key yourself from memory, never echo it, never commit `.env`.
+
+  - **Already have an OpenAI key and prefer it?** Put it in `.env` as `OPENAI_API_KEY` (you can delete the `GEMINI_API_KEY` line), and later write the worker for the OpenAI row of the provider table below. Nothing else in the course changes: same code shape, same `vector(1536)`.
+
+  - **Prove the key before moving on.** Run the check that matches the provider. It uses an ephemeral environment (`--no-project --with openai`), so it does NOT create the uv project; you build that later, in Part 2. The check fails on a bad key here, at setup, instead of an hour later mid-build:
+
+    ```
+    # Gemini (default):
+    uv run --no-project --with openai --env-file .env python -c "import os; from openai import OpenAI; c=OpenAI(api_key=os.environ['GEMINI_API_KEY'], base_url='https://generativelanguage.googleapis.com/v1beta/openai/'); print('embedding OK, dims =', len(c.embeddings.create(model='gemini-embedding-2', input='ping', dimensions=1536).data[0].embedding))"
+
+    # OpenAI (the library reads OPENAI_API_KEY on its own):
+    uv run --no-project --with openai --env-file .env python -c "from openai import OpenAI; print('embedding OK, dims =', len(OpenAI().embeddings.create(model='text-embedding-3-small', input='ping', dimensions=1536).data[0].embedding))"
+    ```
+
+    Expect `embedding OK, dims = 1536`. A `401` or `403` means the key is wrong or not yet active: fix it with the human now, do not proceed to the build.
 
 - **Bring the MCP servers online.** Neon and Context7 are already declared in `.mcp.json` (Claude Code) and `opencode.json` (OpenCode); you do not configure them. Neon authorizes over **OAuth**, and the tool opens the browser itself: the first time it reaches the Neon server (or at the startup trust prompt) a browser window opens. Tell the human to sign in, or sign up free at neon.com, and click Authorize. No command, no key. Do not walk them through `/mcp`; that is only the fallback if no window opens on its own. Context7 is keyless.
 
@@ -62,7 +76,43 @@ uv is the standing convention here whether or not a given prompt names it. The c
 
 A source table (the human-readable rows) plus a **companion embeddings table** holding each chunk and its vector with a foreign key back to the source. Keep vectors in their own table, not a column on the source row, so one long source row can produce several chunks.
 
-Embedding contract (must hold end to end): model `text-embedding-3-small`, dimension `vector(1536)`, cosine distance (`<=>`), HNSW index (`vector_cosine_ops`). The column dimension and the embedding model must match on insert and on query, or results are nonsense. pgvector's HNSW/IVFFlat cap the `vector` type at 2000 dimensions; a larger model (for example `text-embedding-3-large`, 3072) needs `halfvec` (to 4000) or reduced dimensions before it can be indexed.
+Embedding contract (must hold end to end, and it is **identical for both providers**): dimension `vector(1536)`, cosine distance (`<=>`), HNSW index (`vector_cosine_ops`), and **every embedding call passes `dimensions=1536`**. The model comes from the provider table below (`gemini-embedding-2` or `text-embedding-3-small`), set as a constant in your code, never in `.env`; both emit 1536-dim vectors at this setting, so nothing downstream changes. The column dimension and the embedding model must match on insert and on query, or results are nonsense. Staying at 1536 also keeps you under pgvector's 2000-dimension cap for HNSW/IVFFlat; a full-size 3072-dim model (`text-embedding-3-large`, or Gemini at full size) would need `halfvec` or reduced dimensions to index, which is exactly why this course pins 1536.
+
+### Model provider (the Agent Factory free-default standard)
+
+This base follows the track standard: **the human gives ONE provider-named key; you write code for THAT provider only; the model name lives in your code, never in `.env`.** `.env` holds credentials and connection strings, nothing else. The human only ever sees their own provider, so there is no branching for them to read.
+
+| Provider                   | `.env` key       | base_url (a code constant)                                 | embedding model          | chat model                             |
+| -------------------------- | ---------------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------- |
+| **Gemini** (default, free) | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-embedding-2`     | `gemini-2.5-flash`                     |
+| **OpenAI** (opt-in)        | `OPENAI_API_KEY` | default (omit it)                                          | `text-embedding-3-small` | a current small model (check Context7) |
+
+**One library, `openai`, for both.** Gemini speaks the OpenAI API through its compatible endpoint, so you never add `google-genai` or any second SDK; `uv add openai` covers both. Write the client for the human's chosen provider only:
+
+```python
+import os
+from openai import OpenAI
+
+# Gemini (default, free): point the openai library at Google's OpenAI-compatible endpoint.
+client = OpenAI(
+    api_key=os.environ["GEMINI_API_KEY"],
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+)
+EMBEDDING_MODEL = "gemini-embedding-2"   # 1536 dims, already normalized
+CHAT_MODEL = "gemini-2.5-flash"
+
+# OpenAI instead? The openai library reads OPENAI_API_KEY on its own:
+#   client = OpenAI()
+#   EMBEDDING_MODEL = "text-embedding-3-small"
+
+def embed(text: str) -> list[float]:
+    # dimensions=1536 on EVERY call: both providers honor it, and it pins the vector(1536) contract.
+    return client.embeddings.create(model=EMBEDDING_MODEL, input=text, dimensions=1536).data[0].embedding
+
+# answer_question generation reuses the SAME client: client.chat.completions.create(model=CHAT_MODEL, messages=[...])
+```
+
+If the API ever rejects `gemini-embedding-2`, `gemini-embedding-001` also works for this cosine-only course; confirm the current name from the models list or Context7. **Never ask the human for a model name: it is fixed by the table above.**
 
 ### The embedding worker (the part pgvector does not hand you)
 
@@ -98,11 +148,12 @@ A **FastMCP** server exposing read-only retrieval, `search_knowledge(query, limi
 - **The index operator must match the query operator** (`vector_cosine_ops` with `<=>`). Confirm with `EXPLAIN ANALYZE` before calling indexing done.
 - **Retrieval at runtime is read-only.** The Part 6 server uses a role that cannot write; the query text is always a bound parameter, never string-concatenated into SQL.
 - **One uv project; never bare `pip` or `python`.** All app code is a single `uv`-managed project (`uv init` once, on first need). Add dependencies with `uv add` and run everything with `uv run`; a bare `pip install` or `python script.py` escapes the project's environment and quietly breaks reproducibility. See _The Python project (uv)_ above.
-- **Keys from `.env`, never in SQL, code, or the repo.** Read `OPENAI_API_KEY` from the environment. Before any paid-model call, confirm it is set; if not, stop and ask the human.
-- **Confirm the API surface through Context7 before writing it.** pgvector operators, the FastMCP decorator and run API, the OpenAI embeddings call, and the Neon MCP tool names move; this brief is today's known-good, not a permanent spec.
+- **Keys from `.env`, never in SQL, code, or the repo.** Read the provider key (`GEMINI_API_KEY` by default, or `OPENAI_API_KEY`) from the environment; the base_url and model are code constants from the provider table, not `.env` values. Confirm the key is set before any model call; if not, stop and ask the human.
+- **Confirm the API surface through Context7 before writing it.** pgvector operators, the FastMCP decorator and run API, the `openai` library's embeddings and chat calls, and the Neon MCP tool names move; this brief is today's known-good, not a permanent spec.
 
 ## Verification (what "done" means at each layer)
 
+- **Setup:** the provider key (`GEMINI_API_KEY` or `OPENAI_API_KEY`) is set and proven with a live test embedding call returning 1536 dims; both skills installed; Neon authorized; the agent restarted.
 - **Schema:** the `vector` extension enabled on the branch; the source table and the companion embeddings table present; for Part 3, the HNSW index present.
 - **Embeddings:** the embedding row count matches the chunk count of the source corpus; one embedding model only.
 - **Search:** a phrase returns semantically near rows (the classic check: a phrase that shares no words with the stored text still retrieves it).
@@ -112,7 +163,7 @@ A **FastMCP** server exposing read-only retrieval, `search_knowledge(query, limi
 
 ## Keys
 
-`OPENAI_API_KEY` from `.env`, never in code or logs; one key covers embeddings and generation. Neon authorizes over OAuth, so no Neon key lives here; Context7 runs keyless. Before any paid-model call, confirm `OPENAI_API_KEY` is set; if it is not, stop and ask the human.
+One provider key, in `.env`, never in code or logs: it covers both embeddings and generation. The default is **`GEMINI_API_KEY` (Gemini is free)**; the opt-in is `OPENAI_API_KEY`. The base_url and model names are code constants (see the provider table), not `.env` values. Neon authorizes over OAuth, so no Neon key lives here; Context7 runs keyless. Before any model call, confirm the provider key is set; if it is not, stop and ask the human.
 
 ## Sourcing
 
