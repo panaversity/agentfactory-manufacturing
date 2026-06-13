@@ -39,7 +39,7 @@ End state: a working RAG repo on a Neon `dev` branch with pgvector enabled, hold
 
     ```
     # Gemini (default):
-    uv run --no-project --with openai --env-file .env python -c "import os; from openai import OpenAI; c=OpenAI(api_key=os.environ['GEMINI_API_KEY'], base_url='https://generativelanguage.googleapis.com/v1beta/openai/'); print('embedding OK, dims =', len(c.embeddings.create(model='gemini-embedding-2', input='ping', dimensions=1536).data[0].embedding))"
+    uv run --no-project --with openai --env-file .env python -c "import os; from openai import OpenAI; c=OpenAI(api_key=os.environ['GEMINI_API_KEY'], base_url='https://generativelanguage.googleapis.com/v1beta/openai/'); print('embedding OK, dims =', len(c.embeddings.create(model='gemini-embedding-001', input='ping', dimensions=1536).data[0].embedding))"
 
     # OpenAI (the library reads OPENAI_API_KEY on its own):
     uv run --no-project --with openai --env-file .env python -c "from openai import OpenAI; print('embedding OK, dims =', len(OpenAI().embeddings.create(model='text-embedding-3-small', input='ping', dimensions=1536).data[0].embedding))"
@@ -76,7 +76,7 @@ uv is the standing convention here whether or not a given prompt names it. The c
 
 A source table (the human-readable rows) plus a **companion embeddings table** holding each chunk and its vector with a foreign key back to the source. Keep vectors in their own table, not a column on the source row, so one long source row can produce several chunks.
 
-Embedding contract (must hold end to end, and it is **identical for both providers**): dimension `vector(1536)`, cosine distance (`<=>`), HNSW index (`vector_cosine_ops`), and **every embedding call passes `dimensions=1536`**. The model comes from the provider table below (`gemini-embedding-2` or `text-embedding-3-small`), set as a constant in your code, never in `.env`; both emit 1536-dim vectors at this setting, so nothing downstream changes. The column dimension and the embedding model must match on insert and on query, or results are nonsense. Staying at 1536 also keeps you under pgvector's 2000-dimension cap for HNSW/IVFFlat; a full-size 3072-dim model (`text-embedding-3-large`, or Gemini at full size) would need `halfvec` or reduced dimensions to index, which is exactly why this course pins 1536.
+Embedding contract (must hold end to end, and it is **identical for both providers**): dimension `vector(1536)`, cosine distance (`<=>`), HNSW index (`vector_cosine_ops`), and **every embedding call passes `dimensions=1536`**. The model comes from the provider table below (`gemini-embedding-001` or `text-embedding-3-small`), set as a constant in your code, never in `.env`; both emit 1536-dim vectors at this setting, so nothing downstream changes. The column dimension and the embedding model must match on insert and on query, or results are nonsense. Staying at 1536 also keeps you under pgvector's 2000-dimension cap for HNSW/IVFFlat; a full-size 3072-dim model (`text-embedding-3-large`, or Gemini at full size) would need `halfvec` or reduced dimensions to index, which is exactly why this course pins 1536.
 
 ### Model provider (the Agent Factory free-default standard)
 
@@ -84,7 +84,7 @@ This base follows the track standard: **the human gives ONE provider-named key; 
 
 | Provider                   | `.env` key       | base_url (a code constant)                                 | embedding model          | chat model                             |
 | -------------------------- | ---------------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------- |
-| **Gemini** (default, free) | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-embedding-2`     | `gemini-2.5-flash`                     |
+| **Gemini** (default, free) | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-embedding-001`   | `gemini-2.5-flash`                     |
 | **OpenAI** (opt-in)        | `OPENAI_API_KEY` | default (omit it)                                          | `text-embedding-3-small` | a current small model (check Context7) |
 
 **One library, `openai`, for both.** Gemini speaks the OpenAI API through its compatible endpoint, so you never add `google-genai` or any second SDK; `uv add openai` covers both. Write the client for the human's chosen provider only:
@@ -98,7 +98,7 @@ client = OpenAI(
     api_key=os.environ["GEMINI_API_KEY"],
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
 )
-EMBEDDING_MODEL = "gemini-embedding-2"   # 1536 dims, already normalized
+EMBEDDING_MODEL = "gemini-embedding-001"  # 1536 dims; cosine-only course, so manual normalization is not needed
 CHAT_MODEL = "gemini-2.5-flash"
 
 # OpenAI instead? The openai library reads OPENAI_API_KEY on its own:
@@ -112,7 +112,7 @@ def embed(text: str) -> list[float]:
 # answer_question generation reuses the SAME client: client.chat.completions.create(model=CHAT_MODEL, messages=[...])
 ```
 
-If the API ever rejects `gemini-embedding-2`, `gemini-embedding-001` also works for this cosine-only course; confirm the current name from the models list or Context7. **Never ask the human for a model name: it is fixed by the table above.**
+`gemini-embedding-001` is the safe default: it is available on every key, including a brand-new free one. `gemini-embedding-2` is newer and auto-normalizes at 1536, but it is not enabled on every key yet (a fresh key often gets a 404), so treat it as an opt-in upgrade, not the default. Either works for this cosine-only course, where `<=>` is magnitude-invariant. If a model name is ever rejected, confirm the current one from the models list or Context7. **Never ask the human for a model name: it is fixed by the table above.**
 
 ### The embedding worker (the part pgvector does not hand you)
 
@@ -144,6 +144,7 @@ A **FastMCP** server exposing read-only retrieval, `search_knowledge(query, limi
 - **Migrate on a branch.** `prepare_database_migration` opens a temporary branch; `complete_database_migration` merges it. Never run untested DDL against the default branch. Branch freely for index benchmarks and eval runs, then throw the branch away.
 - **Neon MCP is build-plane only.** Never wire `mcp.neon.tech` into the worker, the RAG app, or the Part 6 MCP server. Those reach Neon over `DATABASE_URL`.
 - **The worker runs off Neon, and the database never calls the embedding API.** Embedding and generation are app-layer calls.
+- **Free tiers rate-limit; do not crash on a `429`.** Providers cap requests per minute and per day. The worker and the eval harness should catch `429` and retry with backoff rather than abort the run; a 429 mid-run is the cap, not a bug. Surface it to the human instead of failing silently.
 - **Match the embedding model and the column dimension** on insert and query, and **register pgvector** on any connection that reads or writes the `embedding` column (`register_vector`), or vectors read and write corrupt silently.
 - **The index operator must match the query operator** (`vector_cosine_ops` with `<=>`). Confirm with `EXPLAIN ANALYZE` before calling indexing done.
 - **Retrieval at runtime is read-only.** The Part 6 server uses a role that cannot write; the query text is always a bound parameter, never string-concatenated into SQL.
