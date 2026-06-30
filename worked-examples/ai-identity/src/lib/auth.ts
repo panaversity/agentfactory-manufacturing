@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import Database from "better-sqlite3";
 import { jwt } from "better-auth/plugins/jwt";
 import { oauthProvider } from "@better-auth/oauth-provider";
+import { cimd } from "@better-auth/cimd";
 import { nextCookies } from "better-auth/next-js";
 
 /**
@@ -59,6 +60,20 @@ export const auth = betterAuth({
       // clients; we don't need that here, so silence the reminder.
       silenceWarnings: { oauthAuthServerConfig: true, openidConfig: true },
     }),
+    // CIMD (Client ID Metadata Document, IETF draft + MCP auth spec).
+    //
+    // Real 1.7 API: `cimd()` is a Better Auth plugin (NOT an oauthProvider
+    // option). In its init() it calls extendOAuthProvider(ctx, { clientDiscovery })
+    // to register a URL-`client_id` discovery on the oauth-provider above, so it
+    // MUST be listed AFTER oauthProvider(). It advertises
+    // `client_id_metadata_document_supported: true` in the discovery doc.
+    //
+    // allowLoopback lets an `http://localhost:.../client.json` client_id work
+    // for local dev. In production the draft requires HTTPS client_id URLs; the
+    // plugin enforces that (HTTP is accepted ONLY for loopback, ONLY when this
+    // flag is set). Origin-binding (redirect_uris etc. must share the client_id
+    // origin) is on by default.
+    cimd({ allowLoopback: true }),
     // MUST be last: bridges Better Auth Set-Cookie into the Next.js cookie store.
     nextCookies(),
   ],

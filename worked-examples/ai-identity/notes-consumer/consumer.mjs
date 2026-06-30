@@ -191,7 +191,8 @@ async function main() {
   // [NOTES-SERVER] Discover issuer + jwks_uri, then verify the ID token using
   // ONLY the public JWKS. No shared secret, no DB call.
   // ---------------------------------------------------------------------
-  const disc = await (await fetch(`${AUTHCO}/api/auth/.well-known/openid-configuration`)).json();
+  // 1.7: discovery is served at the issuer root, not under /api/auth.
+  const disc = await (await fetch(`${AUTHCO}/.well-known/openid-configuration`)).json();
   const ISSUER = disc.issuer;
   const JWKS = createRemoteJWKSet(new URL(disc.jwks_uri));
 

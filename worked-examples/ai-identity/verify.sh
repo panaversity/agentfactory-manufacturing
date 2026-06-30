@@ -112,7 +112,10 @@ fi
 # ===========================================================================
 # AC-2  discovery doc + JWKS return valid JSON; JWKS has >=1 public key.
 # ===========================================================================
-DISC=$(curl -s "${AUTH}/.well-known/openid-configuration"); cap "ac2-discovery" "$DISC"
+# 1.7: OIDC discovery moved to the ISSUER ROOT (/.well-known/...), no longer
+# under /api/auth (the plugin's discovery endpoints are now SERVER_ONLY and are
+# served by an onRequest hook at the issuer-root path).
+DISC=$(curl -s "${BASE}/.well-known/openid-configuration"); cap "ac2-discovery" "$DISC"
 JWKS=$(curl -s "${AUTH}/jwks"); cap "ac2-jwks" "$JWKS"
 DISC_OK=$(printf '%s' "$DISC" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(j.issuer&&j.jwks_uri&&j.authorization_endpoint&&j.token_endpoint?"1":"0")}catch{process.stdout.write("0")}})')
 JWKS_KEYS=$(printf '%s' "$JWKS" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String((j.keys||[]).length))}catch{process.stdout.write("0")}})')

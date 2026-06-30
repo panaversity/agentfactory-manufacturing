@@ -7,9 +7,11 @@ By the end you own a real **identity issuer**: people sign in, and your server h
 ## What's already here (the canvas — don't rebuild it)
 
 - A booting Next.js + Tailwind + **shadcn/ui** app (neutral landing page, no auth yet).
-- Better Auth + `@better-auth/oauth-provider` + the Neon driver, **installed**.
+- **Better Auth 1.7+** (currently the `1.7.0-rc` pre-release, pinned) + `@better-auth/oauth-provider` + `@better-auth/cimd` + the Neon driver, **installed**. The base sits on the 1.7 line on purpose: CIMD (spec 06) lives there.
 - The expertise the agent needs in `.agents/skills/` (official Better Auth skills + our `agent-identity-issuer` skill).
 - The **specs** you'll build from, and the **prompts** you'll paste, in `specs/` and `prompts/`.
+
+> **Two 1.7 gotchas the base already handles** (see `AGENTS.md`): `kysely` is pinned to `0.28.17` via a pnpm override (1.7's kysely dep dropped a runtime export the migrator needs, else `/api/auth/*` 500s), and OIDC discovery is served from the **issuer root** — when you build the issuer, add `.well-known` route handlers under `src/app/` that forward to `auth.handler`.
 
 ## What you build (the manufacturing arc)
 

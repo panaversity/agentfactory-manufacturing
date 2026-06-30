@@ -1,4 +1,5 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
@@ -6,8 +7,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Constitution — AuthCo SSO Server
 
-You are building a production-grade identity service on **Better Auth** (v1.6.x) in this Next.js app.
+You are building a production-grade identity service on **Better Auth 1.7.0-rc.0** (the pre-release line, pinned — CIMD lives there) in this Next.js app.
 The expertise you need is in `.agents/skills/` — read the relevant skill before writing auth code; do not work from memory.
+
+Two 1.7 gotchas this build already handles, so don't undo them: the `kysely` pnpm override (`0.28.17`) in `package.json` (1.7's kysely dep dropped a runtime export the migrator needs, else every `/api/auth/*` route 500s), and the issuer-root `.well-known` route handlers in `src/app/.well-known/` (1.7 made OIDC discovery server-only, so Next forwards those paths to `auth.handler`).
 
 ## Principles
 
@@ -26,5 +29,5 @@ The expertise you need is in `.agents/skills/` — read the relevant skill befor
 ## Definition of done
 
 - Behaviour matches the spec, including every acceptance criterion (functional AND the adversarial/security ones).
-- The app boots clean and `./verify.sh` passes from a fresh clone.
+- The app boots clean and `./verify.sh` (issuer, 10/10) passes from a fresh clone; `./cimd-verify.sh` (CIMD, 10/10) passes once the `cimd()` plugin is wired.
 - A human has reviewed the diff against the spec before it ships.

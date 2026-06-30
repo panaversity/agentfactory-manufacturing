@@ -1,77 +1,108 @@
-# CIMD — the edge upgrade (documented, not the default build)
+# CIMD — wired and proven (spec `06-client-identity-with-cimd`)
 
-> **Read this as the answer key for spec `06-client-identity-with-cimd`.** The rest of this worked example pins **stable Better Auth `1.6.23`**, where a client is identified either by a fixed `client_id` (a seeded DB row, `scripts/seed-client.mjs`) or by DCR. That is the default build. CIMD lives on the **v1.7.0 pre-release** channel, so it is documented here as the upgrade path you take when you do spec 06, not wired into the shipped reference. Everything below was demonstrated against the **live Better Auth docs MCP** (`https://mcp.better-auth.com/mcp`), and because the surface is pre-release, you should re-confirm it the same way before you build.
+> **The answer key for spec 06.** This worked solution runs on the **Better Auth `1.7.0-rc.0`** pre-release stack, and CIMD is not just documented here — it is wired into `src/lib/auth.ts` and **proven**: `cimd-verify.sh` passes 10/10 (happy path + six adversarial checks). `allowLoopback: true` makes it testable locally over plain `http://localhost`. It is still a pre-release on a draft standard, so pin the versions you land on and re-confirm the surface against the live Better Auth docs MCP (`https://mcp.better-auth.com/mcp`) at ship time.
 
 ## What CIMD changes
 
 With a fixed `client_id`, a client proves who it is by matching a record you keep (a row, or a DCR registration). With **CIMD (Client ID Metadata Documents)**, the `client_id` _is_ an `https` URL that hosts a JSON metadata document. Your issuer fetches that URL and reads the document instead of keeping a record. No pre-registration. The `client_id` carries its own metadata with it.
 
-It is the direction the MCP world is moving: the MCP `2026-07-28` spec recommends CIMD and deprecates DCR. The standard itself is an IETF **draft** (`draft-ietf-oauth-client-id-metadata-document`, WG-adopted, not yet an RFC), which is exactly why this is the edge of the course.
+It is the direction the MCP world is moving: the MCP `2026-07-28` spec recommends CIMD and deprecates DCR. The standard itself is an IETF **draft** (`draft-ietf-oauth-client-id-metadata-document`, WG-adopted, not yet an RFC), which is why this is the edge of the course — real and runnable, but pre-release.
 
-## 1. Move to the 1.7 pre-release channel
+## 1. The stack (pinned)
 
-Stable `better-auth` (1.6.23) does not ship CIMD. The plugin is `@better-auth/cimd`, part of the **v1.7.0 pre-release** line (`@better-auth/cimd@1.7.0-rc.0`, latest beta `1.7.0-beta.10`). So the first move is onto the rc/beta channel:
+CIMD ships on the 1.7 pre-release line. The exact versions this build is proven on:
 
-```bash
-# move the core to the 1.7 pre-release line, then add the CIMD plugin
-pnpm add better-auth@1.7 @better-auth/oauth-provider@1.7
-pnpm add @better-auth/cimd@rc      # or pin a specific beta, e.g. @1.7.0-beta.10
+```jsonc
+// package.json
+"better-auth": "1.7.0-rc.0",
+"@better-auth/oauth-provider": "1.7.0-rc.0",
+"@better-auth/cimd": "1.7.0-rc.0",
+// peer that the resolved tree pins:
+"better-call": "1.3.7",
+// REQUIRED override — see gotcha #1 below:
+"pnpm": { "overrides": { "kysely": "0.28.17" } }
 ```
 
 Pin the exact versions you land on. This is pre-release: betas can move the surface between releases.
 
-## 2. Wire the issuer
+## 2. How it is wired (the proven shape)
 
-In the pre-release surface there are two equivalent ways to turn CIMD on. Confirm the current shape against the MCP (next section) before pasting:
+`cimd()` is a Better Auth **plugin**, not an `oauthProvider` option. In its `init()` it calls `extendOAuthProvider(ctx, { clientDiscovery })` to register URL-`client_id` discovery on the provider — so it **must be listed AFTER `oauthProvider()`** in the plugins array. This is the path this build uses:
 
 ```ts
-// src/lib/auth.ts — add CIMD to the issuer you built in spec 02
-import { betterAuth } from "better-auth";
-import { jwt } from "better-auth/plugins/jwt";
+// src/lib/auth.ts (excerpt)
 import { oauthProvider } from "@better-auth/oauth-provider";
-import { cimd, cimdClientDiscovery } from "@better-auth/cimd";
-import { nextCookies } from "better-auth/next-js";
+import { cimd } from "@better-auth/cimd";
 
 export const auth = betterAuth({
-  appName: "AuthCo",
-  // ...email/password, database adapter as before...
+  // ...email/password, database, jwt() as before...
   plugins: [
     jwt({ jwks: { keyPairConfig: { alg: "RS256", modulusLength: 2048 } } }),
     oauthProvider({
       loginPage: "/sign-in",
       consentPage: "/consent",
       scopes: ["openid", "profile", "email", "offline_access"],
-      // Option A: hand client discovery to the oauth provider
-      clientDiscovery: cimdClientDiscovery(),
     }),
-    // Option B (equivalent): add the plugin alongside oauthProvider
-    cimd(),
+    // CIMD — listed AFTER oauthProvider (it extends it in init()).
+    // allowLoopback lets an http://localhost/client.json client_id work for
+    // local testing. Off-loopback, HTTPS is strictly enforced.
+    cimd({ allowLoopback: true }),
     nextCookies(), // still last
   ],
 });
 ```
 
-Use **one** of the two options, not both. CIMD only changes how a client is _identified_; the `jwt` signing config and offline JWKS verification from specs 02 and 05 are untouched.
+**Equivalent alternative:** pass the discovery into the provider directly via its `extensions` array (note: `extensions`, not a top-level `clientDiscovery`):
+
+```ts
+import { cimdClientDiscovery } from "@better-auth/cimd";
+oauthProvider({
+  // ...
+  extensions: [{ clientDiscovery: cimdClientDiscovery() }],
+});
+```
+
+Use **one** of the two, not both. Useful `cimd()` options: `refreshRate`, `originBoundFields`, `allowLoopback` (default `false` — set `true` for local http loopback testing), `allowFetch`. CIMD only changes how a client is _identified_; the `jwt` signing config and offline JWKS verification from specs 02 and 05 are untouched.
+
+### `allowLoopback` answers the key question
+
+Yes, CIMD **is** testable locally. With `allowLoopback: true` the issuer accepts a loopback `http://localhost:.../client.json` `client_id` for development. Off-loopback, plain `http` (and any non-`https` scheme) is refused before any fetch. That is why `cimd-verify.sh` can host its metadata document over loopback HTTP and still exercise the real code path.
 
 ## 3. What changes in discovery
 
-Once CIMD is on, the issuer advertises it. Fetch the discovery document and you will see the new capability flag:
+Once CIMD is on, the issuer advertises it. Fetch the discovery document (served at the **issuer root** on 1.7, see gotcha #2) and you will see the capability flag:
 
 ```bash
-curl -s http://localhost:3000/api/auth/.well-known/openid-configuration | jq .client_id_metadata_document_supported
+curl -s http://localhost:3000/.well-known/openid-configuration | jq .client_id_metadata_document_supported
 # true
 ```
 
-That one line is the whole contract: it tells any client "you may identify yourself by URL." From there, an authorization-code flow can use an HTTPS-URL `client_id` (e.g. `https://app.example.com/oauth-client.json`); AuthCo fetches that document, checks the requested `redirect_uri` against the document's own `redirect_uris`, and proceeds with **no** `oauthClient` row. A non-HTTPS URL, a URL with a fragment or userinfo, or a document that disagrees with the request is refused per the draft's URL rules.
+That one line is the whole contract: it tells any client "you may identify yourself by URL." From there, an authorization-code flow can use an HTTPS-URL `client_id` (e.g. `https://app.example.com/oauth-client.json`); AuthCo fetches that document, checks the requested `redirect_uri` against the document's own `redirect_uris`, and proceeds as a public client (`token_endpoint_auth_method: "none"`, PKCE).
 
-## 4. Verify the exact current surface against the live MCP
+### The cache-row nuance (reality, not the draft's "no row")
 
-Because this is pre-release, do not trust the snippet above blind — confirm it. The Better Auth docs MCP is the live source:
+The draft talks as if a URL client leaves **no** record. This implementation is more precise: CIMD persists a **cache row** for the URL client — an auto-created **public** client (`public = 1`, `clientSecret = NULL`, `clientId` = the URL itself). It is _not_ a seeded confidential client and it is _not_ "no DB row." `cimd-verify.sh` checks exactly this (CIMD-3): a public, secret-less row keyed by the URL. Knowing this prevents the false expectation that the `oauthClient` table stays empty.
 
-> Connect to the Better Auth docs MCP at `https://mcp.better-auth.com/mcp` and pull the current `@better-auth/cimd` reference. Confirm: the package version on the 1.7 channel, whether I add `cimd()` or pass `cimdClientDiscovery()` to `oauthProvider({ clientDiscovery })` (or both), and the exact discovery key it advertises. Show me the import paths it returns, and flag anything that differs from `client_id_metadata_document_supported`.
+## 4. The two 1.7 migration gotchas
 
-Build from what the MCP returns. If a beta has moved the import path or renamed the option, keep the behavior the spec asks for (URL `client_id` resolved by fetch, the discovery flag advertised, the draft's URL rules enforced) and re-map the calls.
+Moving onto 1.7 surfaces two traps this build already fixes:
 
-## Why it is documented and not shipped here
+1. **Pin `kysely` to `0.28.17`.** kysely `0.29` removed the `DEFAULT_MIGRATION_TABLE` runtime barrel export that Better Auth's migrator imports. Without the pnpm override, the migration breaks and every `/api/auth/*` route 500s.
 
-The reference build has to run for a reader on a clean clone with zero surprises, so it pins stable `1.6.23` and the static/DCR client path. CIMD asks you to move the whole project onto a pre-release channel — a real, runnable upgrade, but one you opt into when you do spec 06, not a default you inherit. That is the honest shape of an edge feature: documented, reproducible, and clearly marked as off the stable line.
+2. **OIDC discovery moved to the issuer root.** In 1.7 the discovery endpoints are `SERVER_ONLY` — no longer exposed under `/api/auth`. Two thin Next route handlers forward the issuer-root paths to `auth.handler` so the plugin's `onRequest` hook can answer them:
+   - `src/app/.well-known/openid-configuration/route.ts`
+   - `src/app/.well-known/oauth-authorization-server/route.ts`
+
+   JWKS stays at `/api/auth/jwks`. (Minor, flagged not chased: `/oauth2/userinfo` returns 401 even with a valid token on `rc.0`.)
+
+## 5. Verify the exact current surface against the live MCP
+
+This is proven on `1.7.0-rc.0`, but it is still pre-release on a draft standard. Re-confirm before you rely on it:
+
+> Connect to the Better Auth docs MCP at `https://mcp.better-auth.com/mcp` and pull the current `@better-auth/cimd` reference. Confirm: the package versions on the 1.7 channel, that `cimd()` is listed after `oauthProvider()` (or that `cimdClientDiscovery()` goes in `oauthProvider({ extensions: [...] })`), the `allowLoopback` option, and that discovery still advertises `client_id_metadata_document_supported`. Flag anything that differs.
+
+Build from what the MCP returns. If a release moves an import path or renames an option, keep the behavior the spec asks for (URL `client_id` resolved by fetch, the discovery flag advertised, the draft's URL rules enforced, fail-closed on bad documents) and re-map the calls.
+
+## Why it is wired here now
+
+Earlier this file documented CIMD as an unproven upgrade and the rest of the build pinned stable `1.6.23`. That is no longer true. The whole solution moved to `1.7.0-rc.0`, CIMD is wired into `src/lib/auth.ts`, and `cimd-verify.sh` proves it end to end. The honest shape of an edge feature is now: pinned, runnable, proven on this release, and clearly marked as pre-release so you re-check versions at ship time.

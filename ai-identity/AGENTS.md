@@ -20,8 +20,13 @@ You are building a production-grade identity service on **Better Auth** in this 
 ## The stack (already installed — do not swap)
 
 - Next.js (App Router) + React + Tailwind + shadcn/ui components in `src/components/ui/`.
-- Better Auth + `@better-auth/oauth-provider` for the issuer.
+- **Better Auth 1.7+** (currently the `1.7.0-rc` pre-release, pinned) + `@better-auth/oauth-provider` + `@better-auth/cimd` for the issuer and client identity. The pre-release line is deliberate: CIMD (spec 06) lives there. Pin the versions you build against and re-check at ship time.
 - **Database: Neon Postgres via `@neondatabase/serverless`** (pure JS, no native build). The connection string is `DATABASE_URL` in `.env`. Never hard-code it.
+
+### Two 1.7 gotchas to expect (don't fight them)
+
+- **Pin `kysely` to `0.28.17`** — already set as a pnpm override in `package.json`. kysely `0.29` dropped the `DEFAULT_MIGRATION_TABLE` runtime export Better Auth's migrator imports; without the pin, every `/api/auth/*` route 500s. Don't remove it.
+- **OIDC discovery is served from the issuer root** in 1.7 (the internal discovery endpoints are `SERVER_ONLY`). When you build the issuer, add Next route handlers at `src/app/.well-known/openid-configuration/route.ts` and `src/app/.well-known/oauth-authorization-server/route.ts` that forward to `auth.handler`. JWKS stays at `/api/auth/jwks`.
 
 ## Identity invariants (never violate)
 
