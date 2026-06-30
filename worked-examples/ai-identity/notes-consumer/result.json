@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "steps": {
+    "session": true,
+    "authorize": true,
+    "consent": true,
+    "token": true,
+    "userinfo": "valid=200, garbage=401"
+  },
+  "evidence": {
+    "consent_redirect": "/consent?consent_code=UnL5iswzITklQ8tUoijiTs7Twvo0aQvq&client_id=notes-app&scope=openid+profile+email",
+    "ac3": "id_token header.alg=EdDSA, parts=3",
+    "ac4": "verified via JWKS only; sub=K3LC9FfDWrpeoo92pqETJt5ls51iS6W8, aud=notes-app, iss=http://localhost:3000, exp=1782800640, nonce_match=true",
+    "ac6": "rejected post-exp: ERR_JWT_EXPIRED",
+    "ac8": "wrong-audience rejected=true, wrong-issuer rejected=true",
+    "ac9": "replay status=401, body={\"error_description\":\"invalid code\",\"error\":\"invalid_grant\"}",
+    "userinfo": "valid=200, garbage=401",
+    "ac10_consumer": "userinfo keys=sub,email,name,picture,given_name,family_name,email_verified"
+  },
+  "checks": {
+    "ac3": true,
+    "ac4": true,
+    "ac6": true,
+    "ac8": true,
+    "ac9": true,
+    "ac10_consumer": true
+  },
+  "error": null
+}
