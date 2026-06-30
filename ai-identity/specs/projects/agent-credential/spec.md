@@ -1,6 +1,6 @@
 # spec.md — An agent gets its own credential
 
-> **Half 2 — roadmap.** A stub, lighter than specs 01-04. Built on `@better-auth/agent-auth`, which is **BETA, the standard is still moving**. Treat the specific API below as **one swappable instantiation** of the durable primitives (own credential, least-privilege scope, finite expiry, revocable), not the final word. When the standard settles, the primitives stay; only the calls change.
+> **Half 2 — frontier.** Built on `@better-auth/agent-auth`, which is **beta, the standard is still moving**. A **verified worked example exists** (`worked-examples/ai-identity/` — `src/lib/auth.ts`, `agent-consumer/`, `agent-verify.sh`), so this is buildable, not a sketch. Treat the specific API as **one swappable instantiation** of the durable primitives (own credential, least-privilege scope, finite expiry, revocable), not the final word. When the standard settles, the primitives stay; only the calls change.
 
 ## Goal
 

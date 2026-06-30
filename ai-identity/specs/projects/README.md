@@ -6,11 +6,11 @@ This is the **~50% milestone**. From here the course stops handing you fully spe
 
 The projects come in three tiers, by how settled the ground is under them:
 
-| Tier         | Project                                       | Runs on                                                             | When                                                  |
-| ------------ | --------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------- |
-| **Stable**   | `2fa`, `social-login`                         | Official, stable Better Auth                                        | Do these now, at ~50%                                 |
-| **Edge**     | `06-client-identity-with-cimd` (on the spine) | `@better-auth/cimd`, the 1.7 pre-release channel + a draft standard | You just did it — that was the step onto the frontier |
-| **Frontier** | `agent-credential`, `on-behalf-of`            | `@better-auth/agent-auth`, **beta** — the standard is still moving  | Half 2, where agents get identity                     |
+| Tier         | Project                                                | Runs on                                                             | When                                                  |
+| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Stable**   | `2fa`, `social-login`                                  | Official, stable Better Auth                                        | Do these now, at ~50%                                 |
+| **Edge**     | `06-client-identity-with-cimd` (on the spine)          | `@better-auth/cimd`, the 1.7 pre-release channel + a draft standard | You just did it — that was the step onto the frontier |
+| **Frontier** | `agent-credential`, `on-behalf-of`, `step-up-approval` | `@better-auth/agent-auth`, **beta** — the standard is still moving  | Half 2, where agents get identity                     |
 
 **Stable** projects are the natural next move at the halfway mark. You built sign-in; now you raise the stakes on it without leaving solid ground:
 
@@ -19,7 +19,7 @@ The projects come in three tiers, by how settled the ground is under them:
 
 **Edge** is spec `06` itself, back on the core spine: it is where the course first stepped off stable ground onto a pre-release plugin (`@better-auth/cimd`) and an IETF draft. You confirm the live surface against the Better Auth docs MCP before building, because it moves.
 
-**Frontier** is Half 2: an agent gets its **own** credential (`agent-credential`) and acts **on behalf of** a human under bounded, revocable, human-approved authority (`on-behalf-of`). These run on `@better-auth/agent-auth`, which is beta — you treat the specific API as one swappable instantiation of the durable primitives, and pin the version.
+**Frontier** is Half 2: an agent gets its **own** credential (`agent-credential`), acts **on behalf of** a human under bounded, revocable, human-approved authority (`on-behalf-of`), and has that authority **tightened** with least-privilege capabilities, value-level constraints, and step-up approval (`step-up-approval`). These run on `@better-auth/agent-auth`, which is beta — you treat the specific API as one swappable instantiation of the durable primitives, and pin the version. A verified worked example for all three lives in `worked-examples/ai-identity/`.
 
 ---
 

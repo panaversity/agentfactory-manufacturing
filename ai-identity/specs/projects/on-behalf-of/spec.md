@@ -1,6 +1,6 @@
 # spec.md — On-behalf-of (delegated authority)
 
-> **Half 2 — roadmap.** A stub, lighter than specs 01-04. Built on `@better-auth/agent-auth`, which is **BETA, the standard is still moving**. The specific API below is **one swappable instantiation** of the durable primitives (delegated on-behalf-of authority, least-privilege scope, finite/time-boxed expiry, human approval, revocable). Keep the primitives; expect the calls to change.
+> **Half 2 — frontier.** Built on `@better-auth/agent-auth`, which is **beta, the standard is still moving**. A **verified worked example exists** (`worked-examples/ai-identity/` — the delegated + device-code approval flow in `agent-consumer/`, proven by `agent-verify.sh`), so this is buildable, not a sketch. The specific API is **one swappable instantiation** of the durable primitives (delegated on-behalf-of authority, least-privilege scope, finite/time-boxed expiry, human approval, revocable). Keep the primitives; expect the calls to change.
 
 ## Goal
 
