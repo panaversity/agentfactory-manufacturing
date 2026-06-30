@@ -27,6 +27,7 @@ The `worked-examples/` folder holds the **finished build** for a course, for aft
 
 | Course                              | Reference solution                                                                    |
 | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| Connector-Native Apps               | [`worked-examples/connector-native-apps/`](worked-examples/connector-native-apps)     |
 | Digital FTE                         | [`worked-examples/digital-fte/`](worked-examples/digital-fte)                         |
 | Owner Delegation with Identic AI    | [`worked-examples/identic-ai/`](worked-examples/identic-ai)                           |
 | Give Your AI Agent a Nervous System | [`worked-examples/ai-agent-nervous-system/`](worked-examples/ai-agent-nervous-system) |

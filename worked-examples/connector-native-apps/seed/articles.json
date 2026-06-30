@@ -1,0 +1,8 @@
+[
+  {"id": "a1", "title": "Why connectors beat plugins", "topic": "mcp",
+   "body": "A connector is one URL the user pastes. No install, no model bill. The host brings the model."},
+  {"id": "a2", "title": "What a session token is for", "topic": "design",
+   "body": "It gates the real tools so the model must call begin_session first. It is an app-level handle, not a protocol session."},
+  {"id": "a3", "title": "Identity from the subject", "topic": "security",
+   "body": "Read the user from the verified token's sub, never from a tool argument. That one rule prevents cross-user leaks."}
+]
