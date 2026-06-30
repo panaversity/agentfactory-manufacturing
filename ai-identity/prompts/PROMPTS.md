@@ -9,9 +9,11 @@ The loop inside every build prompt is the one you already know from Spec-Driven 
 
 ---
 
-## Setup (once)
+## Lesson 0 — Set up the base · uses `specs/00-set-up-the-base/spec.md`
 
-> I have a Neon Postgres database. Help me put its connection string into `.env` as `DATABASE_URL`, generate a `BETTER_AUTH_SECRET`, and confirm the app boots with `pnpm dev` and the landing page loads. Don't touch auth yet.
+The base ships no app — your first rep is directing the agent to scaffold it. Full prompts in `specs/00-set-up-the-base/prompts.md`.
+
+> Read `specs/00-set-up-the-base/spec.md` and the "Set up the base" section of `AGENTS.md`. Scaffold the Next.js + Tailwind + shadcn app here, install the Better Auth and shadcn skills, pin the Better Auth 1.7 stack with the kysely override, and wire Neon. Don't build any auth yet. Run the acceptance checks and show me the landing page is up.
 
 ---
 
