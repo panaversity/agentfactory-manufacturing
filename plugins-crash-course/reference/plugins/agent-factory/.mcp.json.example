@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "agent-factory": {
+      "type": "http",
+      "url": "https://api.yourdomain.com/mcp",
+      "headers": { "Authorization": "Bearer ${AGENT_FACTORY_KEY}" }
+    }
+  }
+}

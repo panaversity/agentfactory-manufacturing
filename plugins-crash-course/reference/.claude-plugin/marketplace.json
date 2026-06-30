@@ -1,0 +1,12 @@
+{
+  "name": "agent-factory",
+  "owner": { "name": "Zia", "url": "https://agentfactory.panaversity.org" },
+  "metadata": { "description": "Agent Factory plugins for coding agents." },
+  "plugins": [
+    {
+      "name": "agent-factory",
+      "source": "./plugins/agent-factory",
+      "description": "A portable skill, guard hooks, a reviewer subagent, and a tiny MCP server."
+    }
+  ]
+}
