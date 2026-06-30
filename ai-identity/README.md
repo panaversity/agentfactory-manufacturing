@@ -13,14 +13,27 @@ By the end you own a real **identity issuer**: people sign in, and your server h
 
 ## What you build (the manufacturing arc)
 
-| #   | Spec                           | You end up with                                                                                                             |
-| --- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `01-own-your-sign-in`          | Email/password sign-in, sessions, and a real sign-in/up/dashboard UI                                                        |
-| 2   | `02-become-the-issuer`         | An OIDC issuer: discovery, JWKS, the authorization-code flow                                                                |
-| 3   | `03-scopes-and-consent`        | Least-privilege scopes + a consent screen you approve                                                                       |
-| 4   | `04-connect-a-real-app`        | A separate app signs in **with AuthCo** and verifies your tokens via JWKS only                                              |
-| 5   | `05-connect-a-resource-server` | A protected API / MCP gateway validates your RS256 access tokens offline (audience-bound, RFC 8707)                         |
-| 6–8 | `specs/roadmap/`               | (Half 2) An agent gets its own credential, on-behalf-of authority, and human approval — on `@better-auth/agent-auth` (beta) |
+The **core spine** (specs 01-06) takes you from renting login to running a full identity provider. The last spec steps off stable ground onto the edge:
+
+| #   | Spec                           | You end up with                                                                                     |
+| --- | ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| 1   | `01-own-your-sign-in`          | Email/password sign-in, sessions, and a real sign-in/up/dashboard UI                                |
+| 2   | `02-become-the-issuer`         | An OIDC issuer: discovery, JWKS, the authorization-code flow                                        |
+| 3   | `03-scopes-and-consent`        | Least-privilege scopes + a consent screen you approve                                               |
+| 4   | `04-connect-a-real-app`        | A separate app signs in **with AuthCo** and verifies your tokens via JWKS only                      |
+| 5   | `05-connect-a-resource-server` | A protected API / MCP gateway validates your RS256 access tokens offline (audience-bound, RFC 8707) |
+| 6   | `06-client-identity-with-cimd` | Replace a fixed `client_id` with a hosted metadata URL — **edge**, on the Better Auth 1.7 channel   |
+
+### Then: Projects you build yourself (`specs/projects/`)
+
+After the spine you hit the **~50% milestone**, where the course hands you specs and you drive the build. They come in tiers, by how settled the ground is:
+
+| Tier         | Project                                              | Runs on                                                                                                                                        |
+| ------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stable**   | `projects/2fa`, `projects/social-login`              | Official, stable Better Auth — do these at ~50%                                                                                                |
+| **Frontier** | `projects/agent-credential`, `projects/on-behalf-of` | `@better-auth/agent-auth` **beta** (Half 2) — an agent gets its own credential, then bounded, revocable, human-approved on-behalf-of authority |
+
+The transition is **stable → edge → frontier**: build the stable spine, step onto the edge at CIMD, then cross to the frontier where agents get identity. See `specs/projects/README.md` for the full milestone framing.
 
 ## Setup (once)
 

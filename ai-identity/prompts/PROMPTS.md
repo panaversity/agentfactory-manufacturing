@@ -53,6 +53,34 @@ _(prompts land with the spec)_
 
 _(prompts land with the spec — this is where a separate app signs in with AuthCo)_
 
-## Half 2 (roadmap) — agent credential, on-behalf-of, human approval · `specs/roadmap/`
+## Lesson 5 — Connect a resource server · uses `specs/05-connect-a-resource-server/spec.md`
 
-_(on `@better-auth/agent-auth`, beta — taught as one instantiation of the durable primitives)_
+_(prompts land with the spec — a protected API verifies your RS256 tokens offline)_
+
+## Lesson 6 — Client identity with CIMD · uses `specs/06-client-identity-with-cimd/spec.md`
+
+This is the edge of the core spine: a pre-release plugin and a draft standard. Check the live docs before you code.
+
+**Build:**
+
+> Read `specs/06-client-identity-with-cimd/spec.md` and section 2 of the `agent-identity-issuer` skill. Before writing anything, query the live Better Auth docs MCP at `https://mcp.better-auth.com/mcp` for the current `@better-auth/cimd` API and show me what it returns. Then plan it, move us to the Better Auth 1.7 pre-release channel, and build it in small steps. Run the acceptance checks including the adversarial ones (AC-4..AC-7).
+
+**Understand (no spec):**
+
+> Show me my discovery document before and after, and point at the one new line that says "a client may identify itself by URL." Explain what that flips on.
+
+> Hand my issuer an `http://` `client_id`, then one with a `#fragment`, and show each being refused. Explain why the draft insists on a clean HTTPS URL.
+
+---
+
+## Projects (the ~50% milestone) — you drive these · `specs/projects/`
+
+After the spine, the course hands you specs and you build them yourself. Prompts live with each project spec (`specs/projects/<name>/prompts.md`).
+
+**Stable — do these at ~50%:**
+
+> Read `specs/projects/2fa/spec.md` and `specs/projects/social-login/spec.md`. Plan both, show me the plan, then build them in small steps — harden the sign-in you already own with a second factor, and add a "Continue with Google" door. Run every acceptance check, including the adversarial security ones.
+
+**Frontier — Half 2, on `@better-auth/agent-auth` (beta):**
+
+> Read `specs/projects/agent-credential/spec.md` and `specs/projects/on-behalf-of/spec.md`. This is the beta agent surface — pin the version and treat the API as one instantiation of the durable primitives (own credential, least-privilege scope, finite expiry, human approval, revocable). Plan it, build it in small steps, and hold the acceptance criteria even if the calls have moved.
