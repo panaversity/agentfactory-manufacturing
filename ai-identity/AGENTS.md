@@ -6,7 +6,16 @@ You build a production-grade identity service on **Better Auth**, one spec at a 
 
 Follow `specs/00-set-up-the-base/spec.md`. In short, the agent:
 
-1. **Scaffolds the app** in this folder: Next.js (App Router) + TypeScript + Tailwind + **shadcn/ui** (`npx create-next-app@latest . --ts --app --tailwind --src-dir --eslint`, then `npx shadcn@latest init -d`).
+1. **Scaffolds the app** in this folder: Next.js (App Router) + TypeScript + Tailwind + **shadcn/ui**. This folder is **not empty** (it ships `AGENTS.md`, `specs/`, etc.), so `create-next-app .` will refuse, and it would otherwise overwrite this Constitution with its own `AGENTS.md`/`CLAUDE.md`. Scaffold into a temp dir and merge, letting the base files win:
+
+   ```bash
+   npx create-next-app@latest .scaffold --ts --app --tailwind --src-dir --eslint --turbopack --import-alias "@/*" --use-pnpm --yes
+   rsync -a --ignore-existing .scaffold/ ./ && rm -rf .scaffold   # base AGENTS.md/CLAUDE.md/README/specs win
+   npx shadcn@latest init -d
+   ```
+
+   (`--yes` keeps `create-next-app` non-interactive; `--ignore-existing` preserves your `AGENTS.md`, `CLAUDE.md`, `.gitignore`, `.mcp.json`, `specs/`, etc.)
+
 2. **Installs the skills** it needs (this base ships only the one below; install the rest):
    - `npx skills add better-auth/skills` — the official Better Auth skills (core, email/password, 2FA, security).
    - `npx skills add https://github.com/shadcn/ui --skill shadcn`.
