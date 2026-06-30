@@ -6,6 +6,7 @@ Each folder here is the **base** for one crash course: rules files, MCP wiring, 
 
 | Course                           | Folder                                                | Download                                                                                              |
 | -------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Connector-Native Apps            | [`connector-native-apps/`](connector-native-apps)     | [`connector-native-apps-base.zip`](../../releases/latest/download/connector-native-apps-base.zip)     |
 | Plugins for AI Agents            | [`plugins-crash-course/`](plugins-crash-course)       | [`plugins-crash-course-base.zip`](../../releases/latest/download/plugins-crash-course-base.zip)       |
 | RAG on Postgres (pgvector)       | [`postgres-ai/`](postgres-ai)                         | [`postgres-ai-base.zip`](../../releases/latest/download/postgres-ai-base.zip)                         |
 | Digital FTE                      | [`digital-fte/`](digital-fte)                         | [`digital-fte-base.zip`](../../releases/latest/download/digital-fte-base.zip)                         |
