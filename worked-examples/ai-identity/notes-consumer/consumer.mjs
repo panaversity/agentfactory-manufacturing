@@ -154,7 +154,11 @@ async function main() {
   async function exchange(theCode) {
     // Registered token_endpoint_auth_method is client_secret_basic: send the
     // client credentials in an HTTP Basic header, not the body.
-    const basic = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+    // RFC 6749 §2.3.1: both halves are application/x-www-form-urlencoded BEFORE
+    // base64. Skipping this silently breaks any secret containing +, /, or = —
+    // the server form-url-decodes, so a raw "+" arrives as a space → invalid_client.
+    const formEnc = (v) => new URLSearchParams({ v }).toString().slice(2);
+    const basic = Buffer.from(`${formEnc(CLIENT_ID)}:${formEnc(CLIENT_SECRET)}`).toString("base64");
     const body = new URLSearchParams({
       grant_type: "authorization_code",
       code: theCode,

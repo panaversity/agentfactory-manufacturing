@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { jwt } from "better-auth/plugins/jwt";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { cimd } from "@better-auth/cimd";
+import { agentAuth } from "@better-auth/agent-auth";
 import { nextCookies } from "better-auth/next-js";
 
 /**
@@ -74,6 +75,108 @@ export const auth = betterAuth({
     // flag is set). Origin-binding (redirect_uris etc. must share the client_id
     // origin) is on by default.
     cimd({ allowLoopback: true }),
+    // ---------------------------------------------------------------------
+    // The frontier: AuthCo now also issues AGENT identities.
+    //
+    // The first half made AuthCo a human issuer (OIDC + JWKS + CIMD). Agents
+    // are a different principal: each one is its OWN identity with its OWN
+    // short-lived, self-signed credential — not a human's bearer token reused.
+    // `@better-auth/agent-auth` implements the Agent Auth Protocol
+    // (agentauthprotocol.com, v1.0-draft) — complementary to OAuth, purpose-built
+    // for per-agent identity, capabilities, and lifecycle that OAuth has no
+    // concept of. It coexists with the human issuer above in this one instance:
+    // the two identity planes share a server but never share a credential.
+    //
+    // Three-tier model: a User authorizes a Host (a device/runtime), and an
+    // Agent is a keypair registered under a Host. The agent proves itself with
+    // a ~60s self-signed Ed25519 JWT (proof-of-possession), and AuthCo
+    // authorizes each request live against the agent's active Grants.
+    agentAuth({
+      providerName: "AuthCo Agents",
+      providerDescription: "Agent identities for the Notes domain",
+      modes: ["delegated", "autonomous"],
+      // Let a runtime register itself as a host by presenting an inline public
+      // key. A real deployment gates this further (network ACLs, enrollment
+      // tokens); for the worked example it keeps the autonomous demo to one call.
+      allowDynamicHostRegistration: true,
+      // Only the read capability is in a fresh host's budget, so it auto-grants.
+      // Sharing and deletion always require a human decision (below).
+      defaultHostCapabilities: ["read_notes"],
+      // WebAuthn-strength capabilities cannot be auto-approved by a browser agent.
+      proofOfPresence: { enabled: true },
+      // An autonomous agent (no human owner) acts as this service principal.
+      resolveAutonomousUser: async () => ({
+        id: "authco-notes-service",
+        email: "notes-service@authco.local",
+        name: "Notes Service",
+      }),
+      capabilities: [
+        {
+          name: "read_notes",
+          description: "Read the owner's notes",
+          // "none" => auto-granted if within the host's budget. No human needed.
+          approvalStrength: "none",
+          input: {
+            type: "object",
+            properties: { ownerId: { type: "string" } },
+          },
+        },
+        {
+          name: "share_note",
+          description: "Share a note with an external recipient",
+          // "session" => a logged-in human must approve before the grant activates.
+          approvalStrength: "session",
+          // The agent MUST scope WHO it can share with — a value-level constraint
+          // (e.g. { recipientDomain: { in: ["acme.com"] } }), richer than an
+          // OAuth scope string. Enforced at execution time.
+          requiredConstraints: ["recipientDomain"],
+          input: {
+            type: "object",
+            required: ["noteId", "recipient"],
+            properties: {
+              noteId: { type: "string" },
+              recipient: { type: "string" },
+              recipientDomain: { type: "string" },
+            },
+          },
+        },
+        {
+          name: "delete_all_notes",
+          description: "Irreversibly delete every note",
+          // "webauthn" => requires physical presence (a passkey). This stops an
+          // AI agent with browser access from approving its own destruction.
+          approvalStrength: "webauthn",
+        },
+      ],
+      // The server validated the agent JWT and the grant (incl. constraints)
+      // before this runs. We just do the work and, for single-use capabilities,
+      // consume the grant so it cannot be replayed.
+      onExecute: async ({
+        capability,
+        arguments: args,
+        agentSession,
+        revokeGrant,
+      }) => {
+        if (capability === "read_notes") {
+          return {
+            notes: ["buy milk", "ship the frontier"],
+            readBy: agentSession?.agent?.id,
+          };
+        }
+        if (capability === "share_note") {
+          await revokeGrant(); // single-use: one approval, one share
+          return {
+            shared: args?.noteId,
+            with: args?.recipient,
+            status: "sent",
+          };
+        }
+        if (capability === "delete_all_notes") {
+          return { deleted: "all", status: "done" };
+        }
+        return { ok: true };
+      },
+    }),
     // MUST be last: bridges Better Auth Set-Cookie into the Next.js cookie store.
     nextCookies(),
   ],
