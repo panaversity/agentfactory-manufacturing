@@ -19,6 +19,7 @@ Follow `specs/00-set-up-the-base/spec.md`. In short, the agent:
 2. **Installs the skills** it needs (this base ships only the one below; install the rest):
    - `npx skills add better-auth/skills` — the official Better Auth skills (core, email/password, 2FA, security).
    - `npx skills add https://github.com/shadcn/ui --skill shadcn`.
+   - `npx skills add https://github.com/neondatabase/agent-skills --skill neon-postgres -y` — Neon Postgres expertise (pairs with the Neon MCP). Install universal (no `--agent` flag) so it serves Claude Code and OpenCode both.
    - Already here, shipped (not installable): `.agents/skills/agent-identity-issuer/` — OIDC/OAuth **issuance** and **agent identity**, the gap the official skills don't cover.
 3. **Pins Better Auth 1.7+** (the issuer + CIMD live on the pre-release line):
    `pnpm add better-auth@1.7.0-rc.0 @better-auth/oauth-provider@1.7.0-rc.0 @better-auth/cimd@1.7.0-rc.0` and add the pnpm override `{ "kysely": "0.28.17" }`. Pin what you land on; re-check at ship time.

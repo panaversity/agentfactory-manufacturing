@@ -11,13 +11,13 @@ Stand up the empty toolchain you will build the identity service on. This base s
 ### Functional Requirements
 
 - FR-1 **Prerequisites verified.** Node.js (20+) and a package manager are present. Prefer `pnpm` (enable via `corepack enable pnpm` if missing); `npm` is an acceptable fallback. Print the versions so they're on the record.
-- FR-2 **Skills installed.** `npx skills add better-auth/skills` (the official core / email-password / 2FA / security skills) and `npx skills add https://github.com/shadcn/ui --skill shadcn`. The `agent-identity-issuer` skill is already shipped here. (`npx skills add` can silently drop an unknown name — confirm with `--list` or by listing the skills dir after.)
+- FR-2 **Skills installed** (universal — no `--agent` flag, so they serve Claude Code and OpenCode): `npx skills add better-auth/skills` (official core / email-password / 2FA / security), `npx skills add https://github.com/shadcn/ui --skill shadcn`, and `npx skills add https://github.com/neondatabase/agent-skills --skill neon-postgres -y` (Neon Postgres expertise, pairs with the Neon MCP). The `agent-identity-issuer` skill is already shipped here. (`npx skills add` can silently drop an unknown name — confirm by listing the skills dir after.)
 - FR-3 **MCP servers wired.** `.mcp.json` (Claude Code) and `opencode.json` (OpenCode) ship the `better-auth`, `Neon`, and `context7` servers. Confirm they're present and the endpoints are reachable. (Neon prompts for auth on first connect — that's expected.)
 
 ### Acceptance Criteria — Phase 1
 
 - [ ] AC-1 Node 20+ and `pnpm` (or `npm`) report a version.
-- [ ] AC-2 The skills are present: the official `better-auth-*` and `shadcn` skills installed, plus the shipped `agent-identity-issuer`.
+- [ ] AC-2 The skills are present: the official `better-auth-*`, `shadcn`, and `neon-postgres` skills installed, plus the shipped `agent-identity-issuer`.
 - [ ] AC-3 `.mcp.json` and `opencode.json` exist and name `better-auth`, `Neon`, `context7`; each endpoint is reachable (an HTTP response, even 401/405/406, not a DNS/connection failure).
 
 ---
