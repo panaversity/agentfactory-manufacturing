@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-function SignInForm() {
+export default function SignInPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,73 +29,66 @@ function SignInForm() {
     setLoading(true);
     const { error } = await signIn.email({ email, password });
     setLoading(false);
+
     if (error) {
-      setError(error.message ?? "Sign-in failed.");
+      // Constant, non-enumerating message: never reveal whether the email
+      // exists vs. the password was wrong (edge case in spec).
+      setError("Invalid email or password.");
       return;
     }
-    // If we arrived here mid-OAuth flow, the original authorize query is
-    // preserved so the consent step can resume. For a plain login, go home.
-    const next = searchParams.get("next");
-    router.push(next ?? "/dashboard");
+    router.push("/dashboard");
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Sign in to AuthCo</CardTitle>
-        <CardDescription>Use your email and password.</CardDescription>
-      </CardHeader>
-      <form onSubmit={onSubmit}>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error && (
-            <p className="text-sm text-red-600" role="alert">
-              {error}
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Sign in</CardTitle>
+          <CardDescription>Welcome back. Enter your credentials.</CardDescription>
+        </CardHeader>
+        <form onSubmit={onSubmit}>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
+          </CardContent>
+          <CardFooter className="mt-6 flex flex-col gap-3">
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              No account yet?{" "}
+              <Link href="/sign-up" className="underline">
+                Create one
+              </Link>
             </p>
-          )}
-        </CardContent>
-        <CardFooter className="mt-6 flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            No account yet?{" "}
-            <Link href="/sign-up" className="underline">
-              Create one
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
-  );
-}
-
-export default function SignInPage() {
-  return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <Suspense fallback={null}>
-        <SignInForm />
-      </Suspense>
+          </CardFooter>
+        </form>
+      </Card>
     </main>
   );
 }

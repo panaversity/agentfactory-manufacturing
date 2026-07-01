@@ -1,110 +1,122 @@
 import { betterAuth } from "better-auth";
-import Database from "better-sqlite3";
 import { jwt } from "better-auth/plugins/jwt";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { cimd } from "@better-auth/cimd";
 import { agentAuth } from "@better-auth/agent-auth";
 import { nextCookies } from "better-auth/next-js";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { NOTES_RESOURCE } from "./notes-resource";
 
-/**
- * AuthCo — our own identity service.
- *
- * Better Auth core gives us email/password + server-side sessions.
- * The `jwt` plugin gives us an asymmetric signing key + a public JWKS endpoint.
- * The `@better-auth/oauth-provider` plugin turns us into an OAuth 2.1 / OIDC
- * issuer: discovery doc, authorization-code flow (PKCE required by default),
- * consent, token + userinfo endpoints. With the `jwt` plugin present it signs
- * the ID token with the asymmetric JWKS key, so any client can verify it
- * offline using only the published public keys.
- *
- * Secrets (BETTER_AUTH_SECRET, the Notes client secret) come from env only.
- */
+// Neon's serverless driver talks to Postgres over a WebSocket for pooled
+// (transaction-capable) connections. Node 22+ ships a global WebSocket, so we
+// hand it to the driver rather than pulling in the `ws` native-ish dependency.
+if (!neonConfig.webSocketConstructor && typeof WebSocket !== "undefined") {
+  neonConfig.webSocketConstructor = WebSocket as never;
+}
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
+
 export const auth = betterAuth({
   appName: "AuthCo",
-  database: new Database("./sqlite.db"),
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-  // Secret is read from BETTER_AUTH_SECRET; never hard-coded here.
+  // baseURL and secret come from BETTER_AUTH_URL / BETTER_AUTH_SECRET in .env.
+  database: new Pool({ connectionString: process.env.DATABASE_URL }),
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 12,
   },
   plugins: [
-    // Asymmetric signing key + public /jwks. We sign with RS256 ("RSA256" in
-    // Better Auth's config) and bind the issuer + audience so the token matches
-    // what an external resource server (the Course-17 connector) checks:
-    //   iss = AuthCo, aud = the connector's RESOURCE_URL, sub = the user id.
+    // jwt(): asymmetric signing key + public JWKS at /api/auth/jwks. Configured
+    // for RS256 (spec 05) because typical resource-server verifiers (FastMCP's
+    // JWTVerifier, python-jose, gateways) expect RS256, not the EdDSA default.
+    // NOTE: the alg value that works with jose is "RS256" — NOT "RSA256" (which
+    // Better Auth's docs show but jose rejects with JOSENotSupported -> 500).
+    // GET /api/auth/token mints a session JWT bound to the resource server:
+    // iss = BETTER_AUTH_URL, aud = RESOURCE_URL (RFC 8707), finite exp, sub = user id.
     jwt({
-      // NOTE: Better Auth docs label this "RSA256", but jose requires the JWK
-      // alg to be "RS256" — using "RSA256" throws JOSENotSupported at /token.
       jwks: { keyPairConfig: { alg: "RS256", modulusLength: 2048 } },
       jwt: {
-        issuer: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-        audience: process.env.RESOURCE_URL || "http://localhost:8000",
+        // NOTE: the spec's verified snippet also sets `issuer: BETTER_AUTH_URL`,
+        // but that is (a) redundant — the jwt plugin already defaults `iss` to
+        // BETTER_AUTH_URL — and (b) on 1.7.0-rc.0 it collides with the
+        // oauthProvider's own issuer and 404s the discovery document (breaking
+        // specs 02-04). Omitting it keeps iss=BETTER_AUTH_URL AND a healthy
+        // discovery doc. The resource server expects iss = BETTER_AUTH_URL.
+        audience: process.env.RESOURCE_URL, // RFC 8707: aud = the protected API's URL (FR-2)
         expirationTime: "1h",
         getSubject: (session) => session.user.id,
       },
     }),
+    // oauthProvider(): turns AuthCo into an OIDC/OAuth issuer — discovery,
+    // authorization-code flow with PKCE required (OAuth 2.1 default), token +
+    // userinfo endpoints (FR-2). storeClientSecret defaults to "hashed" — KEEP IT,
+    // so client secrets are base64url(SHA-256(secret)) at rest, never plaintext (FR-3, AC-9).
     oauthProvider({
-      // Where AuthCo sends the browser for login / consent.
       loginPage: "/sign-in",
       consentPage: "/consent",
-      // What clients may request. "openid" makes us a true OIDC server.
-      scopes: ["openid", "profile", "email", "offline_access"],
-      // storeClientSecret defaults to "hashed" (base64url(SHA-256(secret))).
-      // We keep the default: client secrets are never stored or recoverable in
-      // plaintext at rest. This closes the spike's at-rest gap.
-      // PKCE is required by default (OAuth 2.1) — no extra flag needed.
-      //
-      // We serve OIDC discovery at /api/auth/.well-known/openid-configuration
-      // (under the Next handler base). The plugin also nudges you to expose a
-      // root-level /.well-known/oauth-authorization-server for MCP-style
-      // clients; we don't need that here, so silence the reminder.
+      // Custom first-class scopes beyond OIDC (FR-1). A client can only be
+      // *granted* scopes it was registered for; these just make them requestable.
+      scopes: ["openid", "profile", "email", "offline_access", "notes.read", "notes.write"],
+      // Register the Notes API as a protected resource (RFC 8707). A token
+      // requested with `resource=<this identifier>` is issued as a JWT whose
+      // `aud` is the identifier, so the resource verifies it offline via JWKS
+      // and reads the granted `scope` claim (FR-5).
+      resources: [
+        {
+          identifier: NOTES_RESOURCE,
+          name: "AuthCo Notes API",
+          allowedScopes: ["openid", "profile", "email", "notes.read", "notes.write"],
+        },
+      ],
+      // NOTE (rc.0): the id-token claim contributor (extensions[].claims.idToken)
+      // does not emit on this pre-release, so the ID token carries the OIDC
+      // standard set (sub/iss/aud/exp/iat/...) but not name/email. A client
+      // reads identity from `sub`; name/email would come from /userinfo, which
+      // is itself unreliable on rc.0. Flagged, not chased — re-check at ship.
       silenceWarnings: { oauthAuthServerConfig: true, openidConfig: true },
     }),
-    // CIMD (Client ID Metadata Document, IETF draft + MCP auth spec).
-    //
-    // Real 1.7 API: `cimd()` is a Better Auth plugin (NOT an oauthProvider
-    // option). In its init() it calls extendOAuthProvider(ctx, { clientDiscovery })
-    // to register a URL-`client_id` discovery on the oauth-provider above, so it
-    // MUST be listed AFTER oauthProvider(). It advertises
-    // `client_id_metadata_document_supported: true` in the discovery doc.
-    //
-    // allowLoopback lets an `http://localhost:.../client.json` client_id work
-    // for local dev. In production the draft requires HTTPS client_id URLs; the
-    // plugin enforces that (HTTP is accepted ONLY for loopback, ONLY when this
-    // flag is set). Origin-binding (redirect_uris etc. must share the client_id
-    // origin) is on by default.
+    // cimd(): Client ID Metadata Documents (IETF draft). A client identifies
+    // itself by an HTTPS URL whose JSON metadata document AuthCo fetches on
+    // demand — no pre-registration. MUST come AFTER oauthProvider() (its init()
+    // calls extendOAuthProvider). allowLoopback lets a http://localhost/...json
+    // client_id work for local testing; off-loopback, HTTPS is strictly enforced.
+    // Advertises client_id_metadata_document_supported: true in discovery (FR-2).
     cimd({ allowLoopback: true }),
-    // ---------------------------------------------------------------------
-    // The frontier: AuthCo now also issues AGENT identities.
-    //
-    // The first half made AuthCo a human issuer (OIDC + JWKS + CIMD). Agents
-    // are a different principal: each one is its OWN identity with its OWN
-    // short-lived, self-signed credential — not a human's bearer token reused.
-    // `@better-auth/agent-auth` implements the Agent Auth Protocol
-    // (agentauthprotocol.com, v1.0-draft) — complementary to OAuth, purpose-built
-    // for per-agent identity, capabilities, and lifecycle that OAuth has no
-    // concept of. It coexists with the human issuer above in this one instance:
-    // the two identity planes share a server but never share a credential.
-    //
-    // Three-tier model: a User authorizes a Host (a device/runtime), and an
-    // Agent is a keypair registered under a Host. The agent proves itself with
-    // a ~60s self-signed Ed25519 JWT (proof-of-possession), and AuthCo
-    // authorizes each request live against the agent's active Grants.
+    // agentAuth(): gives an AI agent its OWN identity (beta, Agent Auth Protocol).
+    // Autonomous mode = a synthetic service principal, not a person. The agent
+    // generates its own Ed25519 keypair, registers its PUBLIC key, and self-signs
+    // short-lived (~50s) proof-of-possession JWTs; AuthCo never issues a stealable
+    // bearer token. Authority is granted capabilities (least-privilege scopes with
+    // value-level constraints), checked before any action runs. One swappable
+    // instantiation of the durable primitives — own credential, scope, exp, revoke.
     agentAuth({
       providerName: "AuthCo Agents",
       providerDescription: "Agent identities for the Notes domain",
       modes: ["delegated", "autonomous"],
-      // Let a runtime register itself as a host by presenting an inline public
-      // key. A real deployment gates this further (network ACLs, enrollment
-      // tokens); for the worked example it keeps the autonomous demo to one call.
+      // proofOfPresence turns on the TOP rung of the approval ladder (spec
+      // step-up-approval, FR-4). Without `enabled: true`, a capability marked
+      // approvalStrength:"webauthn" would be silently granted by a plain
+      // logged-in session — the step-up guardrail only fires when this is on.
+      // With it on, approving a webauthn capability without a registered
+      // authenticator returns { error: "webauthn_required" } + a WebAuthn
+      // challenge, and grants NOTHING. rpId/origin bind the challenge to this
+      // origin (loopback for local dev). The challenge cache is in-memory (no
+      // migration); passkeys are read defensively (none registered => the
+      // step-up cannot be completed here, which is exactly what AC-4 verifies).
+      proofOfPresence: {
+        enabled: true,
+        rpId: "localhost",
+        origin: "http://localhost:3000",
+      },
+      // Let an autonomous runtime register itself as a host by presenting an
+      // inline public key (a real deployment would gate this with enrollment
+      // tokens / network ACLs). Keeps the autonomous demo to one call.
       allowDynamicHostRegistration: true,
-      // Only the read capability is in a fresh host's budget, so it auto-grants.
-      // Sharing and deletion always require a human decision (below).
+      // Only the read capability is in a fresh host's budget, so it auto-grants;
+      // anything destructive must be granted explicitly (and won't be here).
       defaultHostCapabilities: ["read_notes"],
-      // WebAuthn-strength capabilities cannot be auto-approved by a browser agent.
-      proofOfPresence: { enabled: true },
-      // An autonomous agent (no human owner) acts as this service principal.
+      // An autonomous agent (no human owner) acts as this synthetic principal.
       resolveAutonomousUser: async () => ({
         id: "authco-notes-service",
         email: "notes-service@authco.local",
@@ -114,21 +126,17 @@ export const auth = betterAuth({
         {
           name: "read_notes",
           description: "Read the owner's notes",
-          // "none" => auto-granted if within the host's budget. No human needed.
-          approvalStrength: "none",
-          input: {
-            type: "object",
-            properties: { ownerId: { type: "string" } },
-          },
+          approvalStrength: "none", // auto-granted if within the host's budget
+          input: { type: "object", properties: { ownerId: { type: "string" } } },
         },
         {
           name: "share_note",
-          description: "Share a note with an external recipient",
-          // "session" => a logged-in human must approve before the grant activates.
+          description: "Share a note with an external recipient (on behalf of a user)",
+          // "session" => a logged-in human must APPROVE before the grant activates
+          // (device-code flow). This is the heart of on-behalf-of delegation.
           approvalStrength: "session",
-          // The agent MUST scope WHO it can share with — a value-level constraint
-          // (e.g. { recipientDomain: { in: ["acme.com"] } }), richer than an
-          // OAuth scope string. Enforced at execution time.
+          // The agent must scope WHO it can share with — a value-level constraint,
+          // richer than an OAuth scope string, enforced at execution time.
           requiredConstraints: ["recipientDomain"],
           input: {
             type: "object",
@@ -141,35 +149,57 @@ export const auth = betterAuth({
           },
         },
         {
+          name: "delete_note",
+          description: "Delete one specific note (single-use per approval)",
+          // "session" so a headless test can complete the human approval, yet the
+          // grant is SINGLE-USE (consumed in onExecute) — the sensitive-grant
+          // primitive of spec step-up-approval (FR-5): one action per approval,
+          // the next call must be re-approved.
+          approvalStrength: "session",
+          // A value-level constraint scoping WHICH note this grant may delete —
+          // an allow-list, enforced at execution time (FR-2/FR-3). Deleting a
+          // different note is refused as constraint_violated and does NOT consume
+          // the single-use grant.
+          requiredConstraints: ["noteId"],
+          input: {
+            type: "object",
+            required: ["noteId"],
+            properties: { noteId: { type: "string" } },
+          },
+        },
+        {
           name: "delete_all_notes",
           description: "Irreversibly delete every note",
-          // "webauthn" => requires physical presence (a passkey). This stops an
-          // AI agent with browser access from approving its own destruction.
-          approvalStrength: "webauthn",
+          approvalStrength: "webauthn", // never auto-granted; proves least privilege
         },
       ],
-      // The server validated the agent JWT and the grant (incl. constraints)
-      // before this runs. We just do the work and, for single-use capabilities,
-      // consume the grant so it cannot be replayed.
-      onExecute: async ({
-        capability,
-        arguments: args,
-        agentSession,
-        revokeGrant,
-      }) => {
+      // The plugin verifies the agent JWT + grant (incl. constraints) before this
+      // runs. `revokeGrant` consumes the ACTIVE grant for THIS call (sets its
+      // status to "consumed") — the single-use lever (FR-5). The plugin only
+      // reaches onExecute AFTER the constraint check passes, so a constraint
+      // violation is refused earlier and never consumes the grant (FR-3/AC-3).
+      onExecute: async ({ capability, arguments: args, agentSession, revokeGrant }) => {
         if (capability === "read_notes") {
-          return {
-            notes: ["buy milk", "ship the frontier"],
-            readBy: agentSession?.agent?.id,
-          };
+          return { notes: ["buy oat milk", "ship the frontier"], readBy: agentSession?.agent?.id };
         }
         if (capability === "share_note") {
-          await revokeGrant(); // single-use: one approval, one share
+          // Deliberately NOT single-use: on-behalf-of delegation reuses the grant
+          // until it expires or is revoked. (Do not add revokeGrant() here.)
           return {
             shared: args?.noteId,
             with: args?.recipient,
+            sharedByAgent: agentSession?.agent?.id,
+            onBehalfOf: agentSession?.user?.id, // the human this acts for
             status: "sent",
           };
+        }
+        if (capability === "delete_note") {
+          // Do the action, THEN consume the grant so the next call must be
+          // re-approved (single-use). Because we only get here after the
+          // constraint (noteId allow-list) passed, a rejected out-of-scope call
+          // never reaches this consume — the grant survives for the allowed note.
+          await revokeGrant?.();
+          return { deleted: args?.noteId, by: agentSession?.agent?.id, status: "done", singleUse: true };
         }
         if (capability === "delete_all_notes") {
           return { deleted: "all", status: "done" };
@@ -177,7 +207,8 @@ export const auth = betterAuth({
         return { ok: true };
       },
     }),
-    // MUST be last: bridges Better Auth Set-Cookie into the Next.js cookie store.
+    // nextCookies() MUST be the last plugin so Set-Cookie headers from server
+    // actions are persisted.
     nextCookies(),
   ],
 });

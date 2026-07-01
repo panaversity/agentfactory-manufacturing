@@ -27,25 +27,31 @@ export default function SignUpPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Mirror the server's minimum (FR-1) for immediate feedback; the server
+    // is still the source of truth and will reject short passwords (AC-6).
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters.");
+      return;
+    }
+
     setLoading(true);
     const { error } = await signUp.email({ name, email, password });
     setLoading(false);
+
     if (error) {
-      setError(error.message ?? "Sign-up failed.");
+      setError(error.message ?? "Could not create your account.");
       return;
     }
     router.push("/dashboard");
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Create your AuthCo account</CardTitle>
-          <CardDescription>
-            Sign up with email and password. Passwords must be at least 12
-            characters.
-          </CardDescription>
+          <CardTitle>Create your account</CardTitle>
+          <CardDescription>Sign up with your email and a password.</CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit}>
           <CardContent className="flex flex-col gap-4">
@@ -55,8 +61,8 @@ export default function SignUpPage() {
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ada Lovelace"
                 required
+                autoComplete="name"
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -66,8 +72,8 @@ export default function SignUpPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
                 required
+                autoComplete="email"
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -77,13 +83,14 @@ export default function SignUpPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="at least 12 characters"
-                minLength={12}
                 required
+                autoComplete="new-password"
+                minLength={12}
               />
+              <p className="text-xs text-muted-foreground">At least 12 characters.</p>
             </div>
             {error && (
-              <p className="text-sm text-red-600" role="alert">
+              <p role="alert" className="text-sm text-destructive">
                 {error}
               </p>
             )}

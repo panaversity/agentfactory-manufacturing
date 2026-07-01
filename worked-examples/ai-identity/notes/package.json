@@ -1,0 +1,13 @@
+{
+  "name": "notes-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A separate OAuth client app that signs in with AuthCo and verifies tokens offline.",
+  "scripts": {
+    "start": "node --env-file=.env server.mjs"
+  },
+  "dependencies": {
+    "jose": "^6.2.3"
+  }
+}

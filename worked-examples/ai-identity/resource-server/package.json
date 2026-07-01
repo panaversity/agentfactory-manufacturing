@@ -1,0 +1,13 @@
+{
+  "name": "notes-api-resource-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A protected API that verifies AuthCo RS256 access tokens offline via JWKS.",
+  "scripts": {
+    "start": "node --env-file=.env server.mjs"
+  },
+  "dependencies": {
+    "jose": "^6.2.3"
+  }
+}

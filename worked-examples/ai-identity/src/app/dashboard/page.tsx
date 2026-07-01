@@ -1,67 +1,46 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { signOut, useSession } from "@/lib/auth-client";
-import { Button } from "@/components/ui/button";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SignOutButton } from "./sign-out-button";
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const { data: session, isPending } = useSession();
+export default async function DashboardPage() {
+  // Server-side enforcement: no valid session → bounce to /sign-in.
+  // This is the real protection; the client never decides access.
+  const session = await auth.api.getSession({ headers: await headers() });
 
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.replace("/sign-in");
-    }
-  }, [isPending, session, router]);
-
-  async function handleSignOut() {
-    await signOut();
-    router.replace("/sign-in");
+  if (!session) {
+    redirect("/sign-in");
   }
 
-  if (isPending || !session) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      </main>
-    );
-  }
+  const { user } = session;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome, {session.user.name || "there"}</CardTitle>
-          <CardDescription>You are signed in to AuthCo.</CardDescription>
+          <CardTitle>Dashboard</CardTitle>
+          <CardDescription>You are signed in.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Name</span>
-            <span className="font-medium">{session.user.name}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Email</span>
-            <span className="font-medium">{session.user.email}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">User ID</span>
-            <span className="font-mono text-xs">{session.user.id}</span>
+        <CardContent className="flex flex-col gap-4">
+          <dl className="grid grid-cols-[5rem_1fr] gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Name</dt>
+            <dd className="font-medium">{user.name}</dd>
+            <dt className="text-muted-foreground">Email</dt>
+            <dd className="font-medium">{user.email}</dd>
+            <dt className="text-muted-foreground">User ID</dt>
+            <dd className="font-mono text-xs break-all">{user.id}</dd>
+          </dl>
+          <div>
+            <SignOutButton />
           </div>
         </CardContent>
-        <CardFooter className="mt-6">
-          <Button variant="outline" className="w-full" onClick={handleSignOut}>
-            Sign out
-          </Button>
-        </CardFooter>
       </Card>
     </main>
   );

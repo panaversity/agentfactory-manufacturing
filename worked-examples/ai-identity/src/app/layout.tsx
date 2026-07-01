@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AuthCo",
-  description: "AuthCo — our own identity service (Better Auth SSO).",
+  description: "A production-grade identity service built on Better Auth.",
 };
 
 export default function RootLayout({

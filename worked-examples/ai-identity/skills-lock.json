@@ -25,6 +25,12 @@
       "skillPath": "better-auth/emailAndPassword/SKILL.md",
       "computedHash": "747d7f73bd9e2ec5317b8ef88dc70f97df716d00e3d02de4051feebaa48b062d"
     },
+    "neon-postgres": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-postgres/SKILL.md",
+      "computedHash": "7da7d922a0a8043a6ba896b81727182b88ff9ff62757643bdd942063774d105b"
+    },
     "organization-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",

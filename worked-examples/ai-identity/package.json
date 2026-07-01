@@ -1,7 +1,12 @@
 {
-  "name": "auth-sso",
+  "name": "authco",
   "version": "0.1.0",
   "private": true,
+  "pnpm": {
+    "overrides": {
+      "kysely": "0.28.17"
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,8 +18,8 @@
     "@better-auth/agent-auth": "0.6.2",
     "@better-auth/cimd": "1.7.0-rc.0",
     "@better-auth/oauth-provider": "1.7.0-rc.0",
+    "@neondatabase/serverless": "^1.1.0",
     "better-auth": "1.7.0-rc.0",
-    "better-sqlite3": "^12.11.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.22.0",
@@ -27,21 +32,13 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "jose": "^6.2.3",
     "tailwindcss": "^4",
     "typescript": "^5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ],
-    "overrides": {
-      "kysely": "0.28.17"
-    }
   }
 }
